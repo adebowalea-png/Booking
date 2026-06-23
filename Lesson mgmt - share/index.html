@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Lesson management Q2 ideation</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+  <style>
+    body {
+      color: var(--text-primary);
+      padding: var(--size-48) var(--size-24) 80px;
+    }
+
+    .page-header {
+      max-width: 900px;
+      margin: 0 auto var(--size-48);
+    }
+
+    .page-header h1 {
+      font-size: var(--font-size-2xl);
+      font-weight: 700;
+      letter-spacing: -0.5px;
+      color: var(--text-primary);
+    }
+
+    .page-header p {
+      margin-top: var(--size-8);
+      font-size: 20px;
+      line-height: var(--size-24);
+      color: var(--text-secondary);
+    }
+
+    /* Section */
+    .section {
+      max-width: 900px;
+      margin: 0 auto var(--size-64);
+    }
+
+    .section-label {
+      font-size: var(--font-size-lg);
+      font-weight: 600;
+      color: var(--text-primary);
+      margin-bottom: var(--size-16);
+    }
+
+    /* Base screen chips */
+    .chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: var(--size-8);
+    }
+
+    .chip {
+      display: inline-flex;
+      align-items: center;
+      gap: var(--size-8);
+      padding: var(--size-8) var(--size-12);
+      background: var(--bg-primary);
+      border: 2px solid var(--border-primary);
+      border-radius: var(--radius);
+      font-size: var(--font-size-base);
+      font-weight: 600;
+      color: var(--text-primary);
+      text-decoration: none;
+      transition: border-color var(--transition-base), box-shadow var(--transition-base), transform 0.1s;
+    }
+
+    .chip:hover {
+      border-color: var(--border-secondary);
+      box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+      transform: translateY(-2px);
+    }
+
+    .chip svg {
+      color: var(--text-tertiary);
+      flex-shrink: 0;
+    }
+
+    /* Experiment cards */
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+      gap: var(--size-16);
+    }
+
+    .card {
+      background: var(--bg-primary);
+      border: 2px solid var(--border-primary);
+      border-radius: var(--radius);
+      padding: var(--size-16);
+      display: flex;
+      flex-direction: column;
+      gap: var(--size-4);
+      text-decoration: none;
+      color: inherit;
+      transition: border-color var(--transition-base), box-shadow var(--transition-base), transform 0.1s;
+    }
+
+    .card:hover {
+      border-color: var(--border-secondary);
+      box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+      transform: translateY(-2px);
+    }
+
+    .card-title {
+      font-size: var(--font-size-base);
+      font-weight: 600;
+      color: var(--text-primary);
+      line-height: 1.3;
+    }
+
+    .card-desc {
+      font-size: var(--font-size-sm);
+      color: var(--text-secondary);
+      line-height: 1.5;
+      flex: 1;
+    }
+
+    /* Empty state */
+    .empty {
+      grid-column: 1 / -1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: var(--size-8);
+      padding: var(--size-64) var(--size-24);
+      border: 2px dashed var(--border-primary);
+      border-radius: var(--radius);
+      color: var(--text-tertiary);
+      text-align: center;
+      background: var(--bg-primary);
+    }
+    .empty p { font-size: var(--font-size-sm); line-height: 1.6; }
+
+    /* Accordion */
+    .accordion {
+      max-width: 900px;
+      margin: 0 auto var(--size-32);
+      border: 2px solid var(--border-primary);
+      border-radius: var(--radius);
+      overflow: hidden;
+    }
+
+    .accordion-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: var(--size-16);
+      cursor: pointer;
+      user-select: none;
+      background: var(--bg-secondary);
+      gap: var(--size-8);
+    }
+
+    .accordion-header:hover {
+      background: var(--bg-tertiary);
+    }
+
+    .accordion-header .section-label {
+      margin-bottom: 0;
+      font-size: var(--font-size-base);
+    }
+
+    .accordion-chevron {
+      flex-shrink: 0;
+      color: var(--text-tertiary);
+      transition: transform 0.2s ease;
+    }
+
+    .accordion[open] .accordion-chevron {
+      transform: rotate(180deg);
+    }
+
+    .accordion-body {
+      padding: var(--size-24);
+      border-top: 2px solid var(--border-primary);
+      background: var(--bg-primary);
+    }
+
+    /* Full vision prototype CTA */
+    .vision-cta {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: var(--size-16);
+      max-width: 900px;
+      margin: 0 auto var(--size-48);
+      padding: var(--size-24);
+      background: var(--brand);
+      border: 2px solid var(--border-secondary);
+      border-radius: var(--radius);
+      text-decoration: none;
+      color: var(--text-primary);
+      transition: transform 0.1s, box-shadow var(--transition-base), filter var(--transition-base);
+    }
+    .vision-cta:hover { transform: translateY(-2px); box-shadow: 0 6px 24px rgba(0,0,0,0.12); }
+    .vision-cta-title { font-size: var(--font-size-lg); font-weight: 700; }
+    .vision-cta-desc { font-size: var(--font-size-base); margin-top: var(--size-4); opacity: 0.85; }
+    .vision-cta svg { flex-shrink: 0; }
+  </style>
+</head>
+<body>
+
+<header class="page-header">
+  <h1>Lesson management Q2 ideation</h1>
+  <p>How might we design a lesson management system that is simple to use, yet flexible enough for power users with complex lesson configurations?</p>
+</header>
+
+<!-- Full vision prototype -->
+<a class="vision-cta" href="vision/plan-select-vision.html">
+  <div>
+    <div class="vision-cta-title">✨ 0. Full Lesson Management Vision</div>
+    <div class="vision-cta-desc">Explore the end-to-end prototype — My lessons, scheduling, and rescheduling.</div>
+  </div>
+  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+</a>
+
+<!-- Recommended reads -->
+<details class="accordion" open>
+  <summary class="accordion-header">
+    <span class="section-label">📚 Recommended reads</span>
+    <svg class="accordion-chevron" width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M5 7.5L10 12.5L15 7.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+  </summary>
+  <div class="accordion-body">
+    <div class="chips">
+      <a class="chip" href="https://docs.google.com/presentation/d/1aVe-DLMXadRN-pVoSmBqf-UGMlNLJ2KRjgJclU95Fds/edit?slide=id.g3cc42d3b2d7_0_3246#slide=id.g3cc42d3b2d7_0_3246" target="_blank" rel="noopener">Booking Q2 2026 roadmap</a>
+      <a class="chip" href="https://docs.google.com/document/d/1cMkYQuuzowvTrgpcWM2CZeLdyDGJrU2JD7VKljJDNC8/edit?tab=t.0" target="_blank" rel="noopener">Lesson management design brief</a>
+      <a class="chip" href="https://docs.google.com/document/d/1cMkYQuuzowvTrgpcWM2CZeLdyDGJrU2JD7VKljJDNC8/edit?tab=t.brvq1vvb7sds" target="_blank" rel="noopener">Pain points and possible fixes</a>
+    </div>
+  </div>
+</details>
+
+<!-- Experiments -->
+<details class="accordion" open>
+  <summary class="accordion-header">
+    <span class="section-label">💡 Ideas</span>
+    <svg class="accordion-chevron" width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M5 7.5L10 12.5L15 7.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+  </summary>
+  <div class="accordion-body">
+    <div class="grid">
+
+      <a class="card" href="exp/exp-01-quick-action-tooltip.html" target="_blank" rel="noopener">
+        <div class="card-title">1. Quick actions on hover</div>
+        <div class="card-desc">Hover over a time slot to quickly reschedule or cancel without leaving the calendar.</div>
+      </a>
+
+      <a class="card" href="exp/exp-02-upsell-on-reschedule.html" target="_blank" rel="noopener">
+        <div class="card-title">2. Upsell on rescheduling</div>
+        <div class="card-desc">Let learners choose longer lessons when rescheduling, prompting an upsell if they don't have enough lesson balance.</div>
+      </a>
+
+      <a class="card" href="exp/exp-03-lesson-split.html" target="_blank" rel="noopener">
+        <div class="card-title">3. Split lesson on reschedule</div>
+        <div class="card-desc">Let learners split a long lesson into multiple shorter sessions across different time slots when rescheduling.</div>
+      </a>
+
+      <a class="card" href="exp/exp-04-cancel-this-vs-cancel-all.html" target="_blank" rel="noopener">
+        <div class="card-title">4. Cancel one or all lessons</div>
+        <div class="card-desc">Ask learners if they want to cancel just this lesson or all upcoming lessons.</div>
+      </a>
+
+      <a class="card" href="exp/exp-05-sidebar-all-lessons.html" target="_blank" rel="noopener">
+        <div class="card-title">5. View all lessons in sidebar</div>
+        <div class="card-desc">Show all scheduled and available lessons in one place so learners can track their balance.</div>
+      </a>
+
+      <a class="card" href="exp/exp-06-toggle-scheduled-lessons.html" target="_blank" rel="noopener">
+        <div class="card-title">6a. Upcoming lessons: Floating</div>
+        <div class="card-desc">Add a floating view so learners can check and manage upcoming lessons without leaving the flow.</div>
+      </a>
+
+      <a class="card" href="exp/exp-06b-toggle-scheduled-lessons-sidebar.html" target="_blank" rel="noopener">
+        <div class="card-title">6b. Upcoming lessons: Sidebar</div>
+        <div class="card-desc">Show upcoming lessons in a collapsible sidebar section for quick access and management.</div>
+      </a>
+
+      <a class="card" href="exp/exp-06c-toggle-scheduled-lessons-side-panel.html" target="_blank" rel="noopener">
+        <div class="card-title">6c. Upcoming lessons: Drawer</div>
+        <div class="card-desc">Open a drawer from the sidebar to view and manage upcoming lessons in one place.</div>
+      </a>
+
+      <a class="card" href="exp/exp-07a-fix-the-next-conflict-confirmation.html" target="_blank" rel="noopener">
+        <div class="card-title">7a. Fix next conflict: Modal</div>
+        <div class="card-desc">After rescheduling, a modal prompts learners to resolve the next conflict right away or skip for now.</div>
+      </a>
+
+      <a class="card" href="exp/exp-07b-fix-the-next-conflict-inline-confirmation.html" target="_blank" rel="noopener">
+        <div class="card-title">7b. Fix next conflict: Inline</div>
+        <div class="card-desc">After rescheduling, the next conflict is shown inline on the confirmation screen.</div>
+      </a>
+
+      <a class="card" href="exp/exp-07c-fix-the-next-conflict-on-reschedule.html" target="_blank" rel="noopener">
+        <div class="card-title">7c. Fix next conflict: On reschedule</div>
+        <div class="card-desc">While selecting a new time, a modal prompts learners to queue up the next conflict before finishing.</div>
+      </a>
+
+      <a class="card" href="exp/exp-08-duration-visibility.html" target="_blank" rel="noopener">
+        <div class="card-title">8. Lesson duration visibility</div>
+        <div class="card-desc">Replace the subtle underlined duration link with a more visible element.</div>
+      </a>
+
+    </div>
+  </div>
+</details>
+
+<!-- Base screens -->
+<details class="accordion">
+  <summary class="accordion-header">
+    <span class="section-label">🧱 Base screens</span>
+    <svg class="accordion-chevron" width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M5 7.5L10 12.5L15 7.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+  </summary>
+  <div class="accordion-body">
+    <div class="chips">
+      <a class="chip" href="base/schedule.html" target="_blank" rel="noopener">Schedule</a>
+      <a class="chip" href="base/reschedule-single.html" target="_blank" rel="noopener">Reschedule (single)</a>
+      <a class="chip" href="base/reschedule-weekly.html" target="_blank" rel="noopener">Reschedule (weekly)</a>
+      <a class="chip" href="base/my-lessons-single.html" target="_blank" rel="noopener">My lessons (single)</a>
+      <a class="chip" href="base/my-lessons-weekly.html" target="_blank" rel="noopener">My lessons (weekly)</a>
+      <a class="chip" href="base/confirmation-weekly.html" target="_blank" rel="noopener">Confirmation (weekly)</a>
+      <a class="chip" href="base/confirmation-single.html" target="_blank" rel="noopener">Confirmation (single)</a>
+      <a class="chip" href="base/confirmation-reschedule-single.html" target="_blank" rel="noopener">Confirmation reschedule (single)</a>
+      <a class="chip" href="base/confirmation-reschedule-weekly.html" target="_blank" rel="noopener">Confirmation reschedule (weekly)</a>
+    </div>
+  </div>
+</details>
+
+</body>
+</html>

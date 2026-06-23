@@ -1,0 +1,1627 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>My Lessons</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../styles.css" />
+  <link rel="stylesheet" href="lesson-flows.css" />
+  <link rel="stylesheet" href="duration-stepper.css" />
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+  <script src="app-state.js"></script>
+  <script>if (window.AppState) AppState.redirectIfReloaded('plan-select-vision.html');</script>
+  <script src="../availability.js"></script>
+  <style>
+    /* ── Two-column page layout (lessons + progress plan) ── */
+    .my-lessons-page { max-width: 1120px; margin: 0 auto; }
+    .my-lessons-page .my-lessons-header,
+    .my-lessons-page .content-tabs { max-width: none; margin: 0; }
+
+    .lessons-layout {
+      display: grid;
+      grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+      gap: var(--size-32);
+      align-items: start;
+    }
+    .my-lessons-page .lessons-container { max-width: none; margin: 0; }
+
+    /* Progress Plan column aligns its title with the lessons content */
+    .progress-plan-col {
+      padding-top: var(--size-32);
+      display: flex;
+      flex-direction: column;
+      gap: var(--size-24);
+    }
+    .progress-plan-card {
+      background: var(--bg-primary);
+      border: 1px solid var(--border-primary);
+      border-radius: var(--radius);
+      padding: var(--size-24);
+      display: flex;
+      flex-direction: column;
+      gap: var(--size-24);
+    }
+    .pp-tutors {
+      display: flex;
+      flex-wrap: wrap;
+      gap: var(--size-8);
+    }
+    .pp-tutor {
+      display: inline-flex;
+      align-items: center;
+      gap: var(--size-8);
+      padding: 3px var(--size-12) 3px 3px;
+      border-radius: 999px;
+      border: 2px solid var(--border-primary);
+      background: var(--bg-primary);
+      font-family: var(--font);
+      font-size: var(--font-size-sm);
+      font-weight: 600;
+      color: var(--text-tertiary);
+      cursor: pointer;
+      transition: border-color var(--transition-fast), color var(--transition-fast);
+    }
+    .pp-tutor:hover { color: var(--text-primary); }
+    .pp-tutor.active {
+      border-color: var(--border-secondary);
+      color: var(--text-primary);
+    }
+    .pp-tutor-avatar {
+      width: 26px; height: 26px;
+      border-radius: 50%;
+      overflow: hidden;
+      flex-shrink: 0;
+    }
+    .pp-tutor-avatar img { display: block; width: 100%; height: 100%; object-fit: cover; }
+    .pp-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: var(--size-16);
+    }
+    .pp-heading {
+      display: flex;
+      flex-direction: column;
+      gap: var(--size-4);
+      min-width: 0;
+    }
+    .pp-title {
+      font-size: var(--font-size-base);
+      font-weight: 700;
+      color: var(--text-primary);
+      line-height: 1.35;
+    }
+    .pp-subtitle {
+      font-size: var(--font-size-base);
+      font-weight: 400;
+      color: var(--text-secondary);
+      line-height: 1.35;
+    }
+    .pp-renews {
+      font-size: var(--font-size-base);
+      color: var(--text-secondary);
+    }
+    .pp-avatar {
+      width: var(--size-48); height: var(--size-48);
+      border-radius: var(--radius);
+      overflow: hidden; flex-shrink: 0;
+    }
+    .pp-avatar img { display: block; width: 100%; height: 100%; object-fit: cover; }
+    .pp-progress {
+      display: flex;
+      gap: var(--size-4);
+    }
+    .pp-segment {
+      flex: 1;
+      height: var(--size-16);
+      border-radius: 3px;
+      box-sizing: border-box;
+      background: transparent;
+      border: 1.5px solid #1d8a73;
+    }
+    .pp-segment.filled { background: #1d8a73; border-color: #1d8a73; }
+    .pp-status {
+      font-size: var(--font-size-base);
+      color: var(--text-secondary);
+      display: flex;
+      align-items: center;
+      gap: var(--size-8);
+    }
+    .pp-status-badge {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 20px; height: 20px;
+      border-radius: 50%;
+      background: #1d8a73;
+      color: #ffffff;
+      flex-shrink: 0;
+    }
+    .pp-info-list {
+      display: flex;
+      flex-direction: column;
+      gap: var(--size-16);
+    }
+    .pp-info-row {
+      display: flex;
+      align-items: flex-start;
+      gap: var(--size-12);
+    }
+    .pp-info-icon {
+      flex-shrink: 0;
+      width: 20px; height: 20px;
+      color: var(--text-secondary);
+      margin-top: 2px;
+    }
+    .pp-info-body { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+    .pp-info-label { font-size: var(--font-size-sm); color: var(--text-secondary); }
+    .pp-info-value { font-size: var(--font-size-base); font-weight: 600; color: var(--text-primary); line-height: 1.4; }
+    .pp-note {
+      font-size: var(--font-size-sm);
+      color: var(--text-tertiary);
+      line-height: 1.5;
+    }
+    .pp-actions {
+      display: flex;
+      flex-direction: column;
+      gap: var(--size-12);
+    }
+    .pp-btn-primary,
+    .pp-btn-secondary {
+      width: 100%; height: var(--size-btn);
+      box-sizing: border-box;
+      display: flex; align-items: center; justify-content: center;
+      border-radius: var(--radius);
+      font-family: var(--font); font-size: var(--font-size-base); font-weight: 600;
+      color: var(--text-primary); cursor: pointer;
+      text-decoration: none;
+    }
+    .pp-btn-primary {
+      border: 2px solid var(--border-secondary);
+      background: var(--bg-primary);
+    }
+    .pp-btn-primary:hover { background: var(--bg-secondary); }
+    .pp-btn-secondary {
+      border: 2px solid var(--border-primary);
+      background: var(--bg-primary);
+    }
+    .pp-btn-secondary:hover { background: var(--bg-secondary); }
+    .pp-divider {
+      height: 1px;
+      background: var(--border-primary);
+    }
+    .pp-details {
+      display: flex;
+      flex-direction: column;
+      gap: var(--size-12);
+    }
+    .pp-detail-row {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: var(--size-16);
+    }
+    .pp-detail-label {
+      font-size: var(--font-size-base);
+      color: var(--text-secondary);
+    }
+    .pp-detail-value {
+      font-size: var(--font-size-base);
+      font-weight: 700;
+      color: var(--text-primary);
+      text-align: right;
+    }
+    .pp-detail-link {
+      font-size: var(--font-size-base);
+      font-weight: 600;
+      color: var(--text-primary);
+      text-decoration: underline;
+    }
+
+    /* ── See more lessons ── */
+    .lesson-hidden { display: none; }
+    .see-more-wrap { display: flex; justify-content: center; }
+    .see-more-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: var(--size-8);
+      height: var(--size-btn);
+      padding: 0 var(--size-24);
+      border-radius: var(--radius);
+      border: 2px solid var(--border-secondary);
+      background: var(--bg-primary);
+      font-family: var(--font);
+      font-size: var(--font-size-base);
+      font-weight: 600;
+      color: var(--text-primary);
+      cursor: pointer;
+      transition: background var(--transition-fast);
+    }
+    .see-more-btn:hover { background: var(--bg-secondary); }
+
+    /* ── Your progress so far stat cards ── */
+    .progress-stats {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: var(--size-16);
+    }
+    .progress-stat-card {
+      position: relative;
+      background: var(--bg-primary);
+      border: 1px solid var(--border-primary);
+      border-radius: var(--radius);
+      padding: var(--size-16) var(--size-24);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: var(--size-8);
+      text-align: center;
+    }
+    .progress-stat-number {
+      font-size: 48px;
+      font-weight: 700;
+      line-height: 1;
+      color: var(--text-primary);
+    }
+    .progress-stat-label {
+      font-size: var(--font-size-base);
+      color: var(--text-secondary);
+    }
+    .stat-icon {
+      position: absolute;
+      top: var(--size-16);
+      right: var(--size-16);
+      width: 28px; height: 28px;
+    }
+    .stat-icon-pink { color: var(--brand); }
+    .stat-icon-teal { color: #5BC8AC; }
+    .stat-icon-green { color: #5BC8AC; }
+    .stat-icon-flame { fill: currentColor; }
+    /* Hover tooltip on stat cards */
+    .stat-tooltip {
+      position: absolute;
+      bottom: calc(100% + 10px);
+      left: 50%;
+      transform: translateX(-50%) translateY(4px);
+      width: max-content;
+      max-width: 200px;
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      font-size: var(--font-size-sm);
+      font-weight: 600;
+      line-height: 1.4;
+      text-align: center;
+      padding: var(--size-8) var(--size-12);
+      border-radius: var(--radius);
+      box-shadow: 0 4px 16px rgba(18, 17, 23, 0.16);
+      opacity: 0;
+      visibility: hidden;
+      pointer-events: none;
+      transition: opacity var(--transition-fast), transform var(--transition-fast);
+      z-index: 20;
+    }
+    .stat-tooltip::after {
+      content: '';
+      position: absolute;
+      top: 100%;
+      left: 50%;
+      width: 12px; height: 12px;
+      background: var(--bg-primary);
+      transform: translate(-50%, -50%) rotate(45deg);
+      box-shadow: 3px 3px 6px rgba(18, 17, 23, 0.10);
+    }
+    .progress-stat-card:hover .stat-tooltip {
+      opacity: 1;
+      visibility: visible;
+      transform: translateX(-50%) translateY(0);
+    }
+
+    /* Cancel modal form elements */
+    #cancel-modal .modal-card { gap: var(--size-16); position: relative; }
+    #cancel-modal .cancel-form-label {
+      font-size: var(--font-size-sm); font-weight: 600; color: var(--text-primary);
+      margin-bottom: -8px;
+    }
+    #cancel-modal select,
+    #cancel-modal textarea {
+      width: 100%; box-sizing: border-box;
+      font-family: var(--font); font-size: var(--font-size-base); color: var(--text-primary);
+      background: var(--bg-primary); border: 1px solid var(--border-primary);
+      border-radius: var(--radius-sm); padding: var(--size-8) var(--size-12);
+      appearance: none; -webkit-appearance: none;
+    }
+    #cancel-modal select:focus,
+    #cancel-modal textarea:focus { outline: none; border-color: var(--border-secondary); }
+    #cancel-modal textarea { resize: none; height: 80px; line-height: 1.5; }
+    .cancel-stop-weekly {
+      display: flex; align-items: center; gap: var(--size-8);
+      font-size: var(--font-size-base); color: var(--text-primary); cursor: pointer;
+    }
+    .cancel-stop-weekly input[type="checkbox"] {
+      width: 18px; height: 18px; flex-shrink: 0; cursor: pointer;
+      accent-color: var(--text-primary);
+    }
+    #cancel-stop-weekly-row { display: none; }
+
+    /* ── Cancel choice modal ── */
+    #cancel-choice-modal .modal-card { gap: var(--size-16); position: relative; }
+    #reschedule-choice-modal .modal-card { gap: var(--size-16); position: relative; }
+    #weekly-followup-modal .modal-card { gap: var(--size-16); position: relative; }
+    .choice-modal-close {
+      position: absolute;
+      top: var(--size-16); right: var(--size-16);
+      background: none; border: none;
+      color: var(--text-secondary); cursor: pointer;
+      padding: var(--size-4); line-height: 0;
+      border-radius: var(--radius-sm);
+    }
+    .choice-modal-close:hover { color: var(--text-primary); }
+    .cancel-choice-options {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .cancel-choice-option {
+      display: flex;
+      flex-direction: row;
+      align-items: center;
+      width: 100%;
+      padding: 14px var(--size-16);
+      background: var(--bg-primary);
+      border: 2px solid var(--border-primary);
+      border-radius: var(--radius);
+      cursor: pointer;
+      text-align: left;
+      font-family: var(--font);
+      transition: border-color var(--transition-fast), background var(--transition-fast);
+    }
+    .cancel-choice-option:hover {
+      border-color: var(--border-secondary);
+      background: var(--bg-secondary);
+    }
+    .cancel-choice-option-body {
+      display: flex;
+      flex-direction: column;
+      gap: var(--size-4);
+      flex: 1;
+    }
+    .cancel-choice-option-title {
+      font-size: var(--font-size-base);
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+    .cancel-choice-option-sub {
+      font-size: var(--font-size-sm);
+      font-weight: 400;
+      color: var(--text-secondary);
+      line-height: 1.4;
+    }
+    .cancel-choice-chevron {
+      flex-shrink: 0;
+      color: var(--text-tertiary);
+    }
+    .cancel-choice-icon {
+      flex-shrink: 0;
+      color: var(--text-secondary);
+      margin-right: var(--size-12);
+    }
+
+    /* Wider, more rectangular modals (stay-on-track + choice) */
+    #stay-on-track-modal .modal-card,
+    #cancel-choice-modal .modal-card,
+    #reschedule-choice-modal .modal-card { width: 640px; }
+    /* Cancel form modal — a bit bigger than default */
+    #cancel-modal .modal-card { width: 440px; }
+
+    /* ── Stay on track (cancel interstitial) modal ── */
+    .stay-icon { color: var(--text-primary); }
+    .stay-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: var(--size-12);
+      margin-top: var(--size-8);
+    }
+    .btn-stay-secondary,
+    .btn-stay-primary {
+      height: var(--size-btn);
+      padding: 0 var(--size-20);
+      border-radius: var(--radius);
+      font-family: var(--font);
+      font-size: var(--font-size-base);
+      font-weight: 600;
+      color: var(--text-primary);
+      cursor: pointer;
+    }
+    .btn-stay-secondary {
+      border: 2px solid var(--border-primary);
+      background: var(--bg-primary);
+    }
+    .btn-stay-secondary:hover { background: var(--bg-secondary); }
+    .btn-stay-primary {
+      border: 2px solid var(--border-secondary);
+      background: var(--brand);
+    }
+    .btn-stay-primary:hover { filter: brightness(0.95); }
+
+    /* ── Cancel form: Back link + confirm row ── */
+    .cancel-back-link {
+      display: none;
+      align-items: center;
+      gap: var(--size-4);
+      background: none; border: none; padding: 0;
+      font-family: var(--font);
+      font-size: var(--font-size-base);
+      font-weight: 600;
+      color: var(--text-primary);
+      cursor: pointer;
+    }
+    .cancel-back-link span { text-decoration: underline; text-underline-offset: 2px; }
+    #cancel-modal-actions.actions-row {
+      flex-direction: row;
+      align-items: center;
+      justify-content: space-between;
+      gap: var(--size-16);
+    }
+    #cancel-modal-actions.actions-row .cancel-back-link { display: inline-flex; }
+    #cancel-modal-actions.actions-row .btn-cancel-lesson {
+      margin-top: 0;
+      padding: 0 var(--size-20);
+    }
+
+    /* Info block inside cancel modal (weekly path) */
+    .cancel-weekly-info {
+      display: flex;
+      gap: var(--size-8);
+      align-items: flex-start;
+      font-size: var(--font-size-sm);
+      color: var(--text-secondary);
+      background: var(--bg-secondary);
+      border-radius: var(--radius-sm);
+      padding: 10px var(--size-12);
+      line-height: 1.5;
+    }
+
+    /* Weekly dropdown opens above */
+    [data-type="weekly"] .lesson-dropdown {
+      top: auto;
+      bottom: calc(100% + var(--size-4));
+    }
+
+    /* Weekly followup modal */
+    .weekly-followup-list {
+      display: flex;
+      flex-direction: column;
+      gap: var(--size-8);
+      padding: var(--size-12) 14px;
+      background: var(--bg-secondary);
+      border-radius: var(--radius-sm);
+      margin-top: -4px;
+    }
+    .weekly-followup-list-item {
+      display: flex;
+      align-items: center;
+      gap: var(--size-8);
+      font-size: var(--font-size-sm);
+      color: var(--text-secondary);
+    }
+    .cancel-choice-option--destructive .cancel-choice-option-title { color: var(--destructive-text); }
+    .cancel-choice-option--destructive:hover { border-color: var(--destructive-text); background: var(--bg-destructive-light); }
+
+    /* Empty state */
+    #lessons-empty-state {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      padding: var(--size-64) var(--size-24);
+      gap: 10px;
+    }
+    .lessons-empty-icon { color: var(--text-tertiary); }
+    .lessons-empty-title {
+      font-size: 20px;
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+    .lessons-empty-body {
+      font-size: var(--font-size-base);
+      color: var(--text-secondary);
+      line-height: 1.5;
+      max-width: 360px;
+    }
+  </style>
+</head>
+<body>
+
+<!-- Platform nav -->
+<nav class="platform-nav">
+  <a href="../index.html" class="platform-nav-logo">
+    <span>Preply</span>
+  </a>
+  <div class="platform-nav-right">
+    <button class="platform-nav-btn" id="nav-balance-btn">All lessons scheduled</button>
+    <button class="platform-nav-btn">Get €40 credit</button>
+  </div>
+</nav>
+
+<!-- Sub-nav -->
+<div class="subnav">
+  <div class="subnav-links">
+    <a class="subnav-link" href="#">Home</a>
+    <a class="subnav-link" href="#">Messages</a>
+    <a class="subnav-link active" href="#">My lessons</a>
+    <a class="subnav-link" href="#">Learn</a>
+    <a class="subnav-link" href="#">Settings</a>
+  </div>
+  <a class="subnav-for-business" href="#">For business</a>
+</div>
+
+<!-- Page content -->
+<div style="padding: 0 32px;">
+ <div class="my-lessons-page">
+
+  <!-- Heading row -->
+  <div class="my-lessons-header">
+    <h1>Lessons</h1>
+    <a href="schedule-vision.html" class="schedule-btn">
+      <div class="schedule-btn-main">
+        <i data-lucide="plus" width="24" height="24" stroke-width="2.2"></i>
+        <span id="schedule-cta-label">Add lessons</span>
+      </div>
+    </a>
+  </div>
+
+
+  <!-- Two-column layout: lessons (2/3) + progress plan (1/3) -->
+  <div class="lessons-layout">
+
+  <!-- Lessons list -->
+  <div class="lessons-container" id="lessons-container">
+
+    <!-- Your progress so far -->
+    <div class="lessons-section">
+      <h2 class="lessons-section-title">Your English learning journey</h2>
+      <div class="progress-stats">
+        <div class="progress-stat-card">
+          <i data-lucide="clock" class="stat-icon stat-icon-pink" stroke-width="2"></i>
+          <div class="progress-stat-number">10</div>
+          <div class="progress-stat-label">All time lessons</div>
+          <div class="stat-tooltip">All time lessons completed</div>
+        </div>
+        <div class="progress-stat-card">
+          <i data-lucide="clock" class="stat-icon stat-icon-teal" stroke-width="2"></i>
+          <div class="progress-stat-number">9</div>
+          <div class="progress-stat-label">All time hours</div>
+          <div class="stat-tooltip">All time hours spent in lessons</div>
+        </div>
+        <div class="progress-stat-card">
+          <i data-lucide="flame" class="stat-icon stat-icon-flame stat-icon-pink" stroke-width="2"></i>
+          <div class="progress-stat-number">4</div>
+          <div class="progress-stat-label">current lesson streak</div>
+          <div class="stat-tooltip">Current consecutive weeks with at least 1 lesson</div>
+        </div>
+        <div class="progress-stat-card">
+          <i data-lucide="flame" class="stat-icon stat-icon-flame stat-icon-green" stroke-width="2"></i>
+          <div class="progress-stat-number">6</div>
+          <div class="progress-stat-label">longest lesson streak</div>
+          <div class="stat-tooltip">Longest consecutive weeks with at least 1 lesson</div>
+        </div>
+      </div>
+    </div><!-- /your progress so far -->
+
+    <!-- Empty state (shown after cancel all weekly) -->
+    <div id="lessons-empty-state" style="display:none;">
+      <div class="lessons-empty-icon">
+        <i data-lucide="calendar-x" width="40" height="40" stroke-width="1.4"></i>
+      </div>
+      <div class="lessons-empty-title">No upcoming lessons</div>
+      <div class="lessons-empty-body">Don't put your goals on hold! Schedule your next lesson now to see progress.</div>
+      <a href="schedule-vision.html" class="schedule-btn" style="margin-top:8px;">
+        <div class="schedule-btn-main">
+          <i data-lucide="plus" width="20" height="20" stroke-width="2.2"></i>
+          Schedule lesson
+        </div>
+      </a>
+    </div>
+
+    <!-- Upcoming lessons -->
+    <div class="lessons-section" id="upcoming-lessons-section">
+      <h2 class="lessons-section-title">Upcoming lessons</h2>
+      <div class="lesson-cards">
+
+        <!-- Lesson 1: Wed Mar 18 -->
+        <div class="lesson-card">
+          <div class="lesson-card-row">
+            <div class="lesson-avatar">
+              <img src="https://randomuser.me/api/portraits/men/32.jpg" alt="Jonathan" />
+            </div>
+            <div class="lesson-info">
+              <div class="lesson-time-row">
+                <i data-lucide="repeat-2" class="lesson-time-icon" stroke-width="1.8"></i>
+                <span class="lesson-time-text">Wednesday, Mar 18 · 14:00 – 14:50</span>
+              </div>
+              <div class="lesson-meta">Jonathan, English</div>
+            </div>
+            <div class="lesson-actions" data-type="upcoming" data-date="Wednesday, Mar 18 · 14:00 – 14:50">
+              <button class="icon-btn" aria-label="More options">
+                <i data-lucide="more-horizontal" width="20" height="20"></i>
+              </button>
+              <div class="lesson-dropdown">
+                <button class="lesson-dropdown-item js-reschedule"><i data-lucide="calendar-sync" width="20" height="20" stroke-width="1.8"></i>Reschedule lesson</button>
+                <button class="lesson-dropdown-item"><i data-lucide="message-square" width="20" height="20" stroke-width="1.8"></i>Message tutor</button>
+                <button class="lesson-dropdown-item"><i data-lucide="user" width="20" height="20" stroke-width="1.8"></i>See tutor profile</button>
+                <button class="lesson-dropdown-item destructive js-cancel"><i data-lucide="ban" width="20" height="20" stroke-width="1.8"></i>Cancel lesson</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Lesson 2: Wed Mar 25 -->
+        <div class="lesson-card">
+          <div class="lesson-card-row">
+            <div class="lesson-avatar">
+              <img src="https://randomuser.me/api/portraits/men/32.jpg" alt="Jonathan" />
+            </div>
+            <div class="lesson-info">
+              <div class="lesson-time-row">
+                <i data-lucide="repeat-2" class="lesson-time-icon" stroke-width="1.8"></i>
+                <span class="lesson-time-text">Wednesday, Mar 25 · 14:00 – 14:50</span>
+              </div>
+              <div class="lesson-meta">Jonathan, English</div>
+            </div>
+            <div class="lesson-actions" data-type="upcoming" data-date="Wednesday, Mar 25 · 14:00 – 14:50">
+              <button class="icon-btn" aria-label="More options">
+                <i data-lucide="more-horizontal" width="20" height="20"></i>
+              </button>
+              <div class="lesson-dropdown">
+                <button class="lesson-dropdown-item js-reschedule"><i data-lucide="calendar-sync" width="20" height="20" stroke-width="1.8"></i>Reschedule lesson</button>
+                <button class="lesson-dropdown-item"><i data-lucide="message-square" width="20" height="20" stroke-width="1.8"></i>Message tutor</button>
+                <button class="lesson-dropdown-item"><i data-lucide="user" width="20" height="20" stroke-width="1.8"></i>See tutor profile</button>
+                <button class="lesson-dropdown-item destructive js-cancel"><i data-lucide="ban" width="20" height="20" stroke-width="1.8"></i>Cancel lesson</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Lesson 3: Wed Apr 1 -->
+        <div class="lesson-card">
+          <div class="lesson-card-row">
+            <div class="lesson-avatar">
+              <img src="https://randomuser.me/api/portraits/men/32.jpg" alt="Jonathan" />
+            </div>
+            <div class="lesson-info">
+              <div class="lesson-time-row">
+                <i data-lucide="repeat-2" class="lesson-time-icon" stroke-width="1.8"></i>
+                <span class="lesson-time-text">Wednesday, Apr 1 · 14:00 – 14:50</span>
+              </div>
+              <div class="lesson-meta">Jonathan, English</div>
+            </div>
+            <div class="lesson-actions" data-type="upcoming" data-date="Wednesday, Apr 1 · 14:00 – 14:50">
+              <button class="icon-btn" aria-label="More options">
+                <i data-lucide="more-horizontal" width="20" height="20"></i>
+              </button>
+              <div class="lesson-dropdown">
+                <button class="lesson-dropdown-item js-reschedule"><i data-lucide="calendar-sync" width="20" height="20" stroke-width="1.8"></i>Reschedule lesson</button>
+                <button class="lesson-dropdown-item"><i data-lucide="message-square" width="20" height="20" stroke-width="1.8"></i>Message tutor</button>
+                <button class="lesson-dropdown-item"><i data-lucide="user" width="20" height="20" stroke-width="1.8"></i>See tutor profile</button>
+                <button class="lesson-dropdown-item destructive js-cancel"><i data-lucide="ban" width="20" height="20" stroke-width="1.8"></i>Cancel lesson</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Lesson 4: Wed Apr 8 — with info alert (hidden until "See more") -->
+        <div class="lesson-card lesson-hidden ml-collapsible" id="reserved-lesson-card">
+          <div class="lesson-card-row">
+            <div class="lesson-avatar">
+              <img src="https://randomuser.me/api/portraits/men/32.jpg" alt="Jonathan" />
+            </div>
+            <div class="lesson-info">
+              <div class="lesson-time-row">
+                <i data-lucide="repeat-2" class="lesson-time-icon" stroke-width="1.8"></i>
+                <span class="lesson-time-text">Wednesday, Apr 8 · 14:00 – 14:50</span>
+              </div>
+              <div class="lesson-meta">Jonathan, English</div>
+            </div>
+            <div class="lesson-actions" data-type="upcoming" data-date="Wednesday, Apr 8 · 14:00 – 14:50">
+              <button class="icon-btn" aria-label="More options">
+                <i data-lucide="more-horizontal" width="20" height="20"></i>
+              </button>
+              <div class="lesson-dropdown">
+                <button class="lesson-dropdown-item js-reschedule"><i data-lucide="calendar-sync" width="20" height="20" stroke-width="1.8"></i>Reschedule lesson</button>
+                <button class="lesson-dropdown-item"><i data-lucide="message-square" width="20" height="20" stroke-width="1.8"></i>Message tutor</button>
+                <button class="lesson-dropdown-item"><i data-lucide="user" width="20" height="20" stroke-width="1.8"></i>See tutor profile</button>
+                <button class="lesson-dropdown-item destructive js-cancel"><i data-lucide="ban" width="20" height="20" stroke-width="1.8"></i>Cancel lesson</button>
+              </div>
+            </div>
+          </div>
+          <div class="lesson-alert">
+            <i data-lucide="info" class="lesson-alert-icon" stroke-width="1.8"></i>
+            <span class="lesson-alert-text">This time is reserved for you. It will be scheduled automatically after your plan renews on <strong>Apr 5</strong>.</span>
+          </div>
+        </div>
+
+      </div><!-- /lesson-cards -->
+
+      <div class="see-more-wrap" id="see-more-wrap">
+        <button class="see-more-btn" id="see-more-lessons">
+          See more lessons
+          <i data-lucide="plus" width="20" height="20" stroke-width="2.2"></i>
+        </button>
+      </div>
+    </div><!-- /upcoming lessons -->
+
+    <!-- Weekly lessons -->
+    <div class="lessons-section" id="weekly-lessons-section">
+      <h2 class="lessons-section-title">Weekly lessons</h2>
+      <div class="lesson-cards">
+
+        <!-- Weekly: Every Wednesday -->
+        <div class="lesson-card">
+          <div class="lesson-card-row">
+            <div class="lesson-avatar">
+              <img src="https://randomuser.me/api/portraits/men/32.jpg" alt="Jonathan" />
+            </div>
+            <div class="lesson-info">
+              <div class="lesson-time-row">
+                <i data-lucide="repeat-2" class="lesson-time-icon" stroke-width="1.8"></i>
+                <span class="lesson-time-text">Every Wednesday · 14:00 – 14:50</span>
+              </div>
+              <div class="lesson-meta">Jonathan, English</div>
+            </div>
+            <div class="lesson-actions" data-type="weekly" data-date="Every Wednesday · 14:00 – 14:50">
+              <button class="icon-btn" aria-label="More options">
+                <i data-lucide="more-horizontal" width="20" height="20"></i>
+              </button>
+              <div class="lesson-dropdown">
+                <button class="lesson-dropdown-item js-reschedule"><i data-lucide="calendar-sync" width="20" height="20" stroke-width="1.8"></i>Reschedule lesson</button>
+                <button class="lesson-dropdown-item"><i data-lucide="message-square" width="20" height="20" stroke-width="1.8"></i>Message tutor</button>
+                <button class="lesson-dropdown-item"><i data-lucide="user" width="20" height="20" stroke-width="1.8"></i>See tutor profile</button>
+                <button class="lesson-dropdown-item destructive js-cancel"><i data-lucide="ban" width="20" height="20" stroke-width="1.8"></i>Cancel lesson</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div><!-- /lesson-cards -->
+    </div><!-- /weekly lessons -->
+
+    <!-- Past lessons -->
+    <div class="lessons-section" id="past-lessons-section">
+      <h2 class="lessons-section-title">Past lessons</h2>
+      <div class="lesson-cards">
+
+        <!-- Past: Wed Mar 11 -->
+        <div class="lesson-card">
+          <div class="lesson-card-row">
+            <div class="lesson-avatar">
+              <img src="https://randomuser.me/api/portraits/men/32.jpg" alt="Jonathan" />
+            </div>
+            <div class="lesson-info">
+              <div class="lesson-time-row">
+                <i data-lucide="repeat-2" class="lesson-time-icon" stroke-width="1.8"></i>
+                <span class="lesson-time-text">Wednesday, Mar 11 · 14:00 – 14:50</span>
+              </div>
+              <div class="lesson-meta">Jonathan, English</div>
+            </div>
+            <div class="lesson-actions">
+              <button class="icon-btn" aria-label="More options">
+                <i data-lucide="more-horizontal" width="20" height="20"></i>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Past: Wed Mar 4 -->
+        <div class="lesson-card">
+          <div class="lesson-card-row">
+            <div class="lesson-avatar">
+              <img src="https://randomuser.me/api/portraits/men/32.jpg" alt="Jonathan" />
+            </div>
+            <div class="lesson-info">
+              <div class="lesson-time-row">
+                <i data-lucide="repeat-2" class="lesson-time-icon" stroke-width="1.8"></i>
+                <span class="lesson-time-text">Wednesday, Mar 4 · 14:00 – 14:50</span>
+              </div>
+              <div class="lesson-meta">Jonathan, English</div>
+            </div>
+            <div class="lesson-actions">
+              <button class="icon-btn" aria-label="More options">
+                <i data-lucide="more-horizontal" width="20" height="20"></i>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Past: Wed Feb 25 (hidden until "See more") -->
+        <div class="lesson-card lesson-hidden" id="past-hidden-card">
+          <div class="lesson-card-row">
+            <div class="lesson-avatar">
+              <img src="https://randomuser.me/api/portraits/men/32.jpg" alt="Jonathan" />
+            </div>
+            <div class="lesson-info">
+              <div class="lesson-time-row">
+                <i data-lucide="repeat-2" class="lesson-time-icon" stroke-width="1.8"></i>
+                <span class="lesson-time-text">Wednesday, Feb 25 · 14:00 – 14:50</span>
+              </div>
+              <div class="lesson-meta">Jonathan, English</div>
+            </div>
+            <div class="lesson-actions">
+              <button class="icon-btn" aria-label="More options">
+                <i data-lucide="more-horizontal" width="20" height="20"></i>
+              </button>
+            </div>
+          </div>
+        </div>
+
+      </div><!-- /lesson-cards -->
+
+      <div class="see-more-wrap" id="past-see-more-wrap">
+        <button class="see-more-btn" id="past-see-more">
+          See more lessons
+          <i data-lucide="plus" width="20" height="20" stroke-width="2.2"></i>
+        </button>
+      </div>
+    </div><!-- /past lessons -->
+
+  </div><!-- /lessons-container -->
+
+    <!-- Progress Plan column -->
+    <aside class="progress-plan-col">
+      <h2 class="lessons-section-title">Progress Plan</h2>
+      <div class="progress-plan-card">
+        <div class="pp-header">
+          <div class="pp-heading">
+            <div class="pp-title">English with Jonathan</div>
+            <div class="pp-subtitle">1 lesson per week</div>
+            <div class="pp-renews">Renews Apr 29</div>
+          </div>
+          <div class="pp-avatar">
+            <img src="https://randomuser.me/api/portraits/men/32.jpg" alt="Jonathan" />
+          </div>
+        </div>
+        <div class="pp-progress" role="progressbar" aria-valuenow="4" aria-valuemin="0" aria-valuemax="4">
+          <div class="pp-segment filled"></div>
+          <div class="pp-segment filled"></div>
+          <div class="pp-segment filled"></div>
+          <div class="pp-segment filled"></div>
+        </div>
+        <div class="pp-status">
+          <span class="pp-status-text">All lessons scheduled</span>
+          <span class="pp-status-badge"><i data-lucide="check" width="14" height="14" stroke-width="3"></i></span>
+        </div>
+        <div class="pp-info-list">
+          <div class="pp-info-row">
+            <i data-lucide="target" class="pp-info-icon" stroke-width="1.8"></i>
+            <div class="pp-info-body">
+              <div class="pp-info-label">Your learning goal</div>
+              <div class="pp-info-value">Improve English to make friends at College</div>
+            </div>
+          </div>
+          <div class="pp-info-row">
+            <i data-lucide="graduation-cap" class="pp-info-icon" stroke-width="1.8"></i>
+            <div class="pp-info-body">
+              <div class="pp-info-label">Your tutor</div>
+              <div class="pp-info-value">Jonathan is highly rated for conversation</div>
+            </div>
+          </div>
+          <div class="pp-info-row">
+            <i data-lucide="calendar" class="pp-info-icon" stroke-width="1.8"></i>
+            <div class="pp-info-body">
+              <div class="pp-info-label">Time to reach your goal</div>
+              <div class="pp-info-value">3-6 months</div>
+            </div>
+          </div>
+        </div>
+        <div class="pp-note" id="pp-note">To achieve conversational English in 6 months, most learners take at least 2 lessons per week</div>
+
+        <div class="pp-actions">
+          <button class="pp-btn-primary" id="pp-add-lessons">Add extra lessons</button>
+          <a href="schedule-vision.html?manage=1" class="pp-btn-secondary">Manage Schedule</a>
+        </div>
+
+        <div class="pp-divider"></div>
+
+        <div class="pp-details">
+          <div class="pp-detail-row">
+            <span class="pp-detail-label">Your plan</span>
+            <span class="pp-detail-value">4 lessons / 4 weeks</span>
+          </div>
+          <div class="pp-detail-row">
+            <span class="pp-detail-label">Lessons</span>
+            <span class="pp-detail-value">1 per week</span>
+          </div>
+          <div class="pp-detail-row">
+            <span class="pp-detail-label">Renews on</span>
+            <span class="pp-detail-value">June 20</span>
+          </div>
+          <div class="pp-detail-row">
+            <span class="pp-detail-label">$32 every 4 weeks</span>
+            <a href="#" class="pp-detail-link">Manage</a>
+          </div>
+        </div>
+      </div>
+    </aside>
+
+  </div><!-- /lessons-layout -->
+
+ </div><!-- /my-lessons-page -->
+</div><!-- /page content -->
+
+<!-- Stay on track (cancel interstitial) modal -->
+<div class="modal-overlay" id="stay-on-track-modal">
+  <div class="modal-card">
+    <button class="choice-modal-close" id="stay-close" aria-label="Close">
+      <i data-lucide="x" width="20" height="20" stroke-width="2.2"></i>
+    </button>
+    <div class="stay-icon">
+      <i data-lucide="calendar-clock" width="32" height="32" stroke-width="1.8"></i>
+    </div>
+    <div class="modal-title">Stay on track for real results</div>
+    <div class="modal-body" style="margin-top:-12px;">Learners make progress 3x faster when they stay consistent. Pick a new time to keep making progress.</div>
+    <div class="stay-actions">
+      <button class="btn-stay-secondary" id="stay-cancel-anyway">Cancel anyway</button>
+      <button class="btn-stay-primary" id="stay-reschedule">Reschedule</button>
+    </div>
+  </div>
+</div>
+
+<!-- Cancel lesson modal -->
+<div class="modal-overlay" id="cancel-modal">
+  <div class="modal-card">
+    <button class="choice-modal-close" id="cancel-modal-close" aria-label="Close">
+      <i data-lucide="x" width="20" height="20" stroke-width="2.2"></i>
+    </button>
+    <div class="tutor-avatar">
+      <img src="https://randomuser.me/api/portraits/men/32.jpg" alt="Jonathan" />
+    </div>
+    <div class="modal-title" id="cancel-modal-title">Cancel this lesson</div>
+    <div class="modal-body" id="cancel-datetime" style="margin-top:-12px;font-size:14px;"></div>
+    <div id="cancel-weekly-info" class="cancel-weekly-info" style="display:none;">
+      <i data-lucide="info" width="20" height="20" stroke-width="1.8" style="flex-shrink:0;color:var(--text-tertiary);margin-top:1px;"></i>
+      <span>If you cancel this lesson, other learners will be able to use your time slot.</span>
+    </div>
+    <label class="cancel-form-label">Please choose a reason for canceling</label>
+    <select id="cancel-reason">
+      <option value="" disabled selected>Select a reason</option>
+      <option>I have a scheduling conflict</option>
+      <option>I'm not feeling well</option>
+      <option>I need to reschedule for another time</option>
+      <option>Personal reasons</option>
+      <option>Other</option>
+    </select>
+    <label class="cancel-form-label">Message to your tutor · Optional</label>
+    <textarea id="cancel-message" placeholder="Placeholder"></textarea>
+    <label id="cancel-stop-weekly-row" class="cancel-stop-weekly">
+      <input type="checkbox" id="cancel-stop-weekly" />
+      Stop scheduling weekly lessons
+    </label>
+    <div class="modal-actions" id="cancel-modal-actions">
+      <button class="cancel-back-link" id="cancel-back" type="button"><i data-lucide="chevron-left" width="18" height="18" stroke-width="2.2"></i><span>Back</span></button>
+      <button class="btn-cancel-lesson" id="cancel-modal-confirm">Confirm cancellation</button>
+    </div>
+  </div>
+</div>
+
+<!-- Cancel choice modal -->
+<div class="modal-overlay" id="cancel-choice-modal">
+  <div class="modal-card">
+    <button class="choice-modal-close" id="cancel-choice-close" aria-label="Close">
+      <i data-lucide="x" width="20" height="20" stroke-width="2.2"></i>
+    </button>
+    <div class="tutor-avatar">
+      <img src="https://randomuser.me/api/portraits/men/32.jpg" alt="Jonathan" />
+    </div>
+    <div class="modal-title">Which lesson would you like to cancel?</div>
+    <div class="cancel-choice-options">
+      <button class="cancel-choice-option" id="choice-this-lesson">
+        <i data-lucide="calendar" class="cancel-choice-icon" width="20" height="20" stroke-width="1.8"></i>
+        <div class="cancel-choice-option-body">
+          <div class="cancel-choice-option-title">This lesson</div>
+          <div class="cancel-choice-option-sub" id="choice-this-lesson-date"></div>
+        </div>
+        <i data-lucide="chevron-right" class="cancel-choice-chevron" width="20" height="20" stroke-width="2.2"></i>
+      </button>
+      <button class="cancel-choice-option" id="choice-all-lessons">
+        <i data-lucide="repeat-2" class="cancel-choice-icon" width="20" height="20" stroke-width="1.8"></i>
+        <div class="cancel-choice-option-body">
+          <div class="cancel-choice-option-title">All weekly lessons</div>
+          <div class="cancel-choice-option-sub" id="choice-all-lessons-date"></div>
+        </div>
+        <i data-lucide="chevron-right" class="cancel-choice-chevron" width="20" height="20" stroke-width="2.2"></i>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Reschedule choice modal -->
+<div class="modal-overlay" id="reschedule-choice-modal">
+  <div class="modal-card">
+    <button class="choice-modal-close" id="reschedule-choice-close" aria-label="Close">
+      <i data-lucide="x" width="20" height="20" stroke-width="2.2"></i>
+    </button>
+    <div class="tutor-avatar">
+      <img src="https://randomuser.me/api/portraits/men/32.jpg" alt="Jonathan" />
+    </div>
+    <div class="modal-title">Which lesson do you want to reschedule?</div>
+    <div class="cancel-choice-options">
+      <button class="cancel-choice-option" id="choice-reschedule-this">
+        <i data-lucide="calendar" class="cancel-choice-icon" width="20" height="20" stroke-width="1.8"></i>
+        <div class="cancel-choice-option-body">
+          <div class="cancel-choice-option-title">This lesson</div>
+          <div class="cancel-choice-option-sub" id="choice-reschedule-this-date"></div>
+        </div>
+        <i data-lucide="chevron-right" class="cancel-choice-chevron" width="20" height="20" stroke-width="2.2"></i>
+      </button>
+      <button class="cancel-choice-option" id="choice-reschedule-all">
+        <i data-lucide="repeat-2" class="cancel-choice-icon" width="20" height="20" stroke-width="1.8"></i>
+        <div class="cancel-choice-option-body">
+          <div class="cancel-choice-option-title">All weekly lessons</div>
+          <div class="cancel-choice-option-sub" id="choice-reschedule-all-date"></div>
+        </div>
+        <i data-lucide="chevron-right" class="cancel-choice-chevron" width="20" height="20" stroke-width="2.2"></i>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Weekly followup modal -->
+<div class="modal-overlay" id="weekly-followup-modal">
+  <div class="modal-card">
+    <button class="choice-modal-close" id="weekly-followup-close" aria-label="Close">
+      <i data-lucide="x" width="20" height="20" stroke-width="2.2"></i>
+    </button>
+    <div class="modal-title" style="font-size:20px;">What about your scheduled lessons?</div>
+    <div class="weekly-followup-list">
+      <div class="weekly-followup-list-item">
+        <i data-lucide="calendar" width="20" height="20" stroke-width="1.8" style="flex-shrink:0;color:var(--text-tertiary);"></i>
+        Wednesday, Mar 18 · 14:00 – 14:50
+      </div>
+      <div class="weekly-followup-list-item">
+        <i data-lucide="calendar" width="20" height="20" stroke-width="1.8" style="flex-shrink:0;color:var(--text-tertiary);"></i>
+        Wednesday, Mar 25 · 14:00 – 14:50
+      </div>
+      <div class="weekly-followup-list-item">
+        <i data-lucide="calendar" width="20" height="20" stroke-width="1.8" style="flex-shrink:0;color:var(--text-tertiary);"></i>
+        Wednesday, Apr 1 · 14:00 – 14:50
+      </div>
+      <div class="weekly-followup-list-item">
+        <i data-lucide="calendar" width="20" height="20" stroke-width="1.8" style="flex-shrink:0;color:var(--text-tertiary);"></i>
+        Wednesday, Apr 8 · 14:00 – 14:50
+      </div>
+    </div>
+    <div class="modal-actions" style="flex-direction:column;gap:10px;">
+      <button class="btn-cancel-lesson" id="followup-cancel-all" style="margin-top:0;padding:10px 18px;">Cancel all lessons</button>
+      <button class="btn-secondary" id="followup-keep" style="padding:10px 18px;">Keep my lessons</button>
+    </div>
+  </div>
+</div>
+
+<!-- Get more lessons modal (opened by the "Add lessons" CTA when balance is full) -->
+<div class="modal-overlay" id="ds-more-modal">
+  <div class="modal-card">
+    <button class="ds-balance-close" id="ds-more-close" aria-label="Close"><i data-lucide="x" width="20" height="20" stroke-width="2.2"></i></button>
+    <div class="ds-more-chart">
+      <div class="ds-more-plot">
+        <div class="ds-more-col"><div class="ds-more-bar ds-more-bar-current"></div></div>
+        <div class="ds-more-col"><div class="ds-more-bar ds-more-bar-plan"><span>4</span></div></div>
+      </div>
+      <div class="ds-more-labels"><span>Current cycle</span><span>Your plan</span></div>
+      <div class="ds-more-renews">Your plan renews on July 1</div>
+    </div>
+    <div class="ds-more-title">How would you like to get more lessons?</div>
+    <div class="lf-choice-options">
+      <button class="lf-choice-option" id="ds-more-upgrade">
+        <div class="lf-choice-body"><div class="lf-choice-title">Upgrade my plan</div><div class="lf-choice-sub">Change my plan to include more lessons every billing cycle</div></div>
+        <i data-lucide="chevron-right" class="lf-choice-chevron" width="20" height="20" stroke-width="2.2"></i>
+      </button>
+      <button class="lf-choice-option" id="ds-more-add">
+        <div class="lf-choice-body"><div class="lf-choice-title">Add lessons this cycle</div><div class="lf-choice-sub">Get extra lessons for this billing cycle only</div></div>
+        <i data-lucide="chevron-right" class="lf-choice-chevron" width="20" height="20" stroke-width="2.2"></i>
+      </button>
+    </div>
+  </div>
+</div>
+
+<script>
+  // ── Shared lessons store: the learner's live bookings, persisted across
+  //    pages. My Lessons is the entry page, so it seeds the store from the
+  //    plan's mock data on a fresh start, then renders everything from it. ──
+  var ML_PLAN = (window.AppState && AppState.getPlan) ? AppState.getPlan() : 4;
+  var mlLessons = (window.AppState && AppState.getLessons) ? AppState.getLessons() : null;
+  if (!mlLessons) {
+    mlLessons = (typeof MOCK_SCHEDULED !== 'undefined' ? MOCK_SCHEDULED[ML_PLAN] : []).map(function (l) { return Object.assign({}, l); });
+    if (window.AppState) AppState.setLessons(mlLessons);
+  }
+  var ML_UNITS = { 25: 0.5, 50: 1, 80: 1.5, 110: 2, 140: 2.5, 170: 3, 200: 3.5 };
+  function mlUnits(m) { return (m in ML_UNITS) ? ML_UNITS[m] : Math.round(m / 50 * 2) / 2; }
+  function mlSumUnits(arr) { return (arr || []).reduce(function (s, l) { return s + mlUnits(l.mins || 50); }, 0); }
+  function mlPersist() { if (window.AppState) AppState.setLessons(mlLessons); }
+  var ABBR_FULL = { Mon: 'Monday', Tue: 'Tuesday', Wed: 'Wednesday', Thu: 'Thursday', Fri: 'Friday', Sat: 'Saturday', Sun: 'Sunday' };
+  function mlWeekdayOf(l) { return ABBR_FULL[l.day.split(', ')[0]] || l.day.split(', ')[0]; }
+  // Remove one stored occurrence matching a card's date string, then persist.
+  function mlRemoveOccurrence(dateStr) {
+    var wm = (dateStr || '').match(/Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday/);
+    var dm = (dateStr || '').match(/\b([A-Z][a-z]{2}) (\d{1,2})\b/); // "Mar 16"
+    for (var i = 0; i < mlLessons.length; i++) {
+      var parts = (mlLessons[i].day.split(', ')[1] || '').split(' '); // ["16","Mar"]
+      if (wm && mlWeekdayOf(mlLessons[i]) === wm[0] && (!dm || (parts[1] === dm[1] && parts[0] === dm[2]))) {
+        mlLessons.splice(i, 1); break;
+      }
+    }
+    mlPersist();
+  }
+  function mlAddMin(t, m) { var p = t.split(':'); var tot = (+p[0]) * 60 + (+p[1]) + m; return String(Math.floor(tot / 60)).padStart(2, '0') + ':' + String(tot % 60).padStart(2, '0'); }
+
+  // Render the lesson lists from the store (so cancellations on any page show).
+  (function renderLessons() {
+    var up = document.getElementById('upcoming-lessons-section');
+    var wk = document.getElementById('weekly-lessons-section');
+    if (!mlLessons.length) {
+      if (up) up.style.display = 'none';
+      if (wk) wk.style.display = 'none';
+      var empty = document.getElementById('lessons-empty-state'); if (empty) empty.style.display = 'flex';
+      return;
+    }
+    // Build upcoming + weekly cards from the store for BOTH plans, so
+    // cancellations AND reschedules (time/day changes) are reflected.
+    function card(label, type, hidden, icon) {
+      return '<div class="lesson-card' + (hidden ? ' lesson-hidden ml-collapsible' : '') + '">' +
+        '<div class="lesson-card-row">' +
+          '<div class="lesson-avatar"><img src="https://randomuser.me/api/portraits/men/32.jpg" alt="Jonathan" /></div>' +
+          '<div class="lesson-info">' +
+            '<div class="lesson-time-row"><i data-lucide="' + (icon || 'repeat-2') + '" class="lesson-time-icon" stroke-width="1.8"></i>' +
+            '<span class="lesson-time-text">' + label + '</span></div>' +
+            '<div class="lesson-meta">Jonathan, English</div>' +
+          '</div>' +
+          '<div class="lesson-actions" data-type="' + type + '" data-date="' + label + '">' +
+            '<button class="icon-btn" aria-label="More options"><i data-lucide="more-horizontal" width="20" height="20"></i></button>' +
+            '<div class="lesson-dropdown">' +
+              '<button class="lesson-dropdown-item js-reschedule"><i data-lucide="calendar-sync" width="20" height="20" stroke-width="1.8"></i>Reschedule lesson</button>' +
+              '<button class="lesson-dropdown-item"><i data-lucide="message-square" width="20" height="20" stroke-width="1.8"></i>Message tutor</button>' +
+              '<button class="lesson-dropdown-item"><i data-lucide="user" width="20" height="20" stroke-width="1.8"></i>See tutor profile</button>' +
+              '<button class="lesson-dropdown-item destructive js-cancel"><i data-lucide="ban" width="20" height="20" stroke-width="1.8"></i>Cancel lesson</button>' +
+            '</div>' +
+          '</div>' +
+        '</div>' +
+      '</div>';
+    }
+    function upLabel(l) {
+      var p = l.day.split(', '); var dm = (p[1] || '').split(' '); // ["16","Mar"]
+      return mlWeekdayOf(l) + ', ' + (dm[1] || '') + ' ' + (dm[0] || '') + ' · ' + l.time + ' – ' + mlAddMin(l.time, l.mins || 50);
+    }
+    // Upcoming: next 4 visible (one per weekday config), the rest under "See more".
+    // Weekly occurrences use the repeat icon; one-off singles use the calendar.
+    var ups = mlLessons.map(function (l, i) {
+      return card(upLabel(l), 'upcoming', i >= 4, l.type === 'single' ? 'calendar' : 'repeat-2');
+    });
+    var upWrap = document.querySelector('#upcoming-lessons-section .lesson-cards');
+    if (upWrap) upWrap.innerHTML = ups.join('');
+    // Weekly: one card per distinct config = weekday + time (so two lessons on
+    // the same day both show). Store is chronological, so cards come out in
+    // day-of-week then earliest-time order.
+    var seen = {}, wks = [];
+    mlLessons.forEach(function (l) {
+      if (l.type === 'single') return;
+      var full = mlWeekdayOf(l);
+      var key = full + '|' + l.time;
+      if (seen[key]) return; seen[key] = true;
+      wks.push(card('Every ' + full + ' · ' + l.time + ' – ' + mlAddMin(l.time, l.mins || 50), 'weekly', false));
+    });
+    var wkWrap = document.querySelector('#weekly-lessons-section .lesson-cards');
+    if (wkWrap) wkWrap.innerHTML = wks.join('');
+    // 8-plan only: plan-rate copy (the 4-plan keeps its static "1 per week").
+    if (ML_PLAN === 8) {
+      var sub = document.querySelector('.pp-subtitle'); if (sub) sub.textContent = '4 lessons per week';
+      var note = document.getElementById('pp-note');
+      if (note) note.textContent = "You're on the fast track — 3 lessons a week to conversational English in 6 months.";
+      document.querySelectorAll('.pp-detail-row').forEach(function (row) {
+        var label = row.querySelector('.pp-detail-label');
+        var val = row.querySelector('.pp-detail-value');
+        if (!label || !val) return;
+        if (label.textContent === 'Your plan') val.textContent = '8 lessons / 4 weeks';
+        else if (label.textContent === 'Lessons') val.textContent = '4 per week';
+      });
+    }
+  })();
+
+  var stayModal = document.getElementById('stay-on-track-modal');
+  var cancelModal = document.getElementById('cancel-modal');
+  var cancelChoiceModal = document.getElementById('cancel-choice-modal');
+  var rescheduleChoiceModal = document.getElementById('reschedule-choice-modal');
+  var weeklyFollowupModal = document.getElementById('weekly-followup-modal');
+  var pendingCancelDate = '';
+  var pendingCancelScope = 'this';
+  var pendingCancelCard = null;
+  var pendingWeeklyOnly = false;
+
+  function resetCancelModal() {
+    document.getElementById('cancel-modal-title').textContent = 'Cancel this lesson';
+    document.getElementById('cancel-modal-confirm').textContent = 'Confirm cancellation';
+    document.getElementById('cancel-weekly-info').style.display = 'none';
+    document.getElementById('cancel-modal-actions').classList.remove('actions-row');
+    pendingCancelScope = 'this';
+    pendingCancelCard = null;
+    pendingWeeklyOnly = false;
+  }
+
+  var weeklyDate = (document.querySelector('[data-type="weekly"]') || {dataset:{}}).dataset.date || '';
+  document.getElementById('choice-all-lessons-date').textContent = weeklyDate;
+  document.getElementById('choice-reschedule-all-date').textContent = weeklyDate;
+
+  var mlRescheduleChoiceDate = '';
+  function openRescheduleChoice(date) {
+    mlRescheduleChoiceDate = date;
+    document.getElementById('choice-reschedule-this-date').textContent = date;
+    rescheduleChoiceModal.classList.add('visible');
+  }
+  // Extract a config (weekday + time) from a card's date string.
+  function mlConfigFromDate(dateStr) {
+    var wm = (dateStr || '').match(/Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday/);
+    var tm = (dateStr || '').match(/(\d{1,2}:\d{2})/);
+    return { day: wm ? wm[0] : '', time: tm ? tm[1] : '' };
+  }
+  // Tell reschedule-weekly which config (weekday + time) is being rescheduled.
+  function setReschedTargetFrom(dateStr) {
+    var c = mlConfigFromDate(dateStr);
+    if (c.day && window.AppState && AppState.setRescheduleTarget) AppState.setRescheduleTarget(c.day, c.time);
+  }
+
+  document.querySelectorAll('.lesson-actions').forEach(function(actions) {
+    var btn = actions.querySelector('.icon-btn');
+    var menu = actions.querySelector('.lesson-dropdown');
+    if (!menu) return; // static (non-interactive) actions, e.g. past lessons
+    var type = actions.dataset.type;
+    var date = actions.dataset.date;
+
+    btn.addEventListener('click', function(e) {
+      e.stopPropagation();
+      var isOpen = menu.classList.contains('open');
+      document.querySelectorAll('.lesson-dropdown.open').forEach(function(m) {
+        m.classList.remove('open');
+      });
+      if (!isOpen) menu.classList.add('open');
+    });
+
+    menu.querySelector('.js-reschedule').addEventListener('click', function() {
+      menu.classList.remove('open');
+      if (type === 'upcoming') {
+        openRescheduleChoice(date);
+      } else {
+        setReschedTargetFrom(date);
+        window.location.href = 'reschedule-weekly-vision.html';
+      }
+    });
+
+    menu.querySelector('.js-cancel').addEventListener('click', function(e) {
+      e.stopPropagation();
+      menu.classList.remove('open');
+
+      if (type === 'upcoming') {
+        // Single lesson: Stay on track → choice (this / all weekly).
+        document.getElementById('choice-this-lesson-date').textContent = date;
+        pendingCancelDate = date;
+        pendingCancelCard = actions.closest('.lesson-card');
+        pendingWeeklyOnly = false;
+        stayModal.classList.add('visible');
+      } else {
+        // Weekly lesson: Stay on track → straight to all-weekly cancel (no choice).
+        pendingCancelDate = date;
+        pendingCancelCard = null;
+        pendingWeeklyOnly = true;
+        stayModal.classList.add('visible');
+      }
+    });
+  });
+
+  document.addEventListener('click', function() {
+    document.querySelectorAll('.lesson-dropdown.open').forEach(function(m) {
+      m.classList.remove('open');
+    });
+  });
+
+  function openCancelConfirm(scope) {
+    cancelChoiceModal.classList.remove('visible');
+    pendingCancelScope = scope;
+    document.getElementById('cancel-weekly-info').style.display = 'none';
+    document.getElementById('cancel-reason').value = '';
+    document.getElementById('cancel-message').value = '';
+    document.getElementById('cancel-stop-weekly').checked = false;
+    document.getElementById('cancel-stop-weekly-row').style.display = 'none';
+    document.getElementById('cancel-modal-confirm').textContent = 'Confirm cancellation';
+    document.getElementById('cancel-modal-actions').classList.add('actions-row');
+    if (scope === 'all') {
+      document.getElementById('cancel-modal-title').textContent = 'Cancel all weekly lessons';
+      // Count this config's occurrences (weekday + time) from the store — works
+      // for any number of weekly configs on either plan.
+      var cfg = mlConfigFromDate(pendingCancelDate);
+      var cnt = mlLessons.filter(function (l) {
+        return l.type !== 'single' && mlWeekdayOf(l) === cfg.day && l.time === cfg.time;
+      }).length;
+      document.getElementById('cancel-datetime').textContent = pendingCancelDate + ' · ' + cnt + ' Lesson' + (cnt === 1 ? '' : 's');
+    } else {
+      document.getElementById('cancel-modal-title').textContent = 'Cancel this lesson';
+      document.getElementById('cancel-datetime').textContent = pendingCancelDate;
+    }
+    cancelModal.classList.add('visible');
+  }
+
+  function cancelAllLessons() {
+    var up = document.getElementById('upcoming-lessons-section');
+    var wk = document.getElementById('weekly-lessons-section');
+    if (up) up.style.display = 'none';
+    if (wk) wk.style.display = 'none';
+    document.getElementById('lessons-empty-state').style.display = 'flex';
+    mlLessons = [];
+    mlPersist();
+  }
+
+  // 8-plan: cancel one weekday's config — remove that weekday's cards (weekly +
+  // upcoming occurrences) and return its balance (25-min weekly = 0.5 × 4 = 2).
+  function cancelWeeklyConfigCards(dateStr) {
+    var c = mlConfigFromDate(dateStr);
+    if (!c.day) { cancelAllLessons(); return; }
+    // Remove only this config's cards (weekday + time).
+    document.querySelectorAll('#upcoming-lessons-section .lesson-card, #weekly-lessons-section .lesson-card').forEach(function (card) {
+      var act = card.querySelector('.lesson-actions');
+      var cc = mlConfigFromDate(act && act.dataset ? act.dataset.date : '');
+      if (cc.day === c.day && cc.time === c.time) card.remove();
+    });
+    // Persist: drop this config's occurrences; balance follows the store.
+    mlLessons = mlLessons.filter(function (l) { return !(mlWeekdayOf(l) === c.day && l.time === c.time); });
+    mlPersist();
+    mlSetProgress(mlSumUnits(mlLessons));
+    // If that was the last booking, fall back to the empty state — otherwise the
+    // now-empty upcoming section would still show its "See more lessons" button.
+    if (!mlLessons.length) {
+      var up = document.getElementById('upcoming-lessons-section');
+      var wk = document.getElementById('weekly-lessons-section');
+      if (up) up.style.display = 'none';
+      if (wk) wk.style.display = 'none';
+      var es = document.getElementById('lessons-empty-state'); if (es) es.style.display = 'flex';
+    }
+  }
+
+  // ── Stay on track interstitial ──
+  document.getElementById('stay-cancel-anyway').addEventListener('click', function() {
+    stayModal.classList.remove('visible');
+    if (pendingWeeklyOnly) {
+      openCancelConfirm('all'); // bypass the "which lesson?" choice
+    } else {
+      cancelChoiceModal.classList.add('visible');
+    }
+  });
+  document.getElementById('stay-reschedule').addEventListener('click', function() {
+    stayModal.classList.remove('visible');
+    if (pendingWeeklyOnly) {
+      setReschedTargetFrom(pendingCancelDate);
+      window.location.href = 'reschedule-weekly-vision.html';
+    } else {
+      openRescheduleChoice(pendingCancelDate);
+    }
+  });
+  document.getElementById('stay-close').addEventListener('click', function() {
+    stayModal.classList.remove('visible');
+    resetCancelModal();
+  });
+  stayModal.addEventListener('click', function(e) {
+    if (e.target === stayModal) { stayModal.classList.remove('visible'); resetCancelModal(); }
+  });
+
+  // ── Reschedule choice modal ──
+  document.getElementById('choice-reschedule-this').addEventListener('click', function() {
+    window.location.href = 'reschedule-vision.html';
+  });
+  document.getElementById('choice-reschedule-all').addEventListener('click', function() {
+    setReschedTargetFrom(mlRescheduleChoiceDate);
+    window.location.href = 'reschedule-weekly-vision.html';
+  });
+  document.getElementById('reschedule-choice-close').addEventListener('click', function() {
+    rescheduleChoiceModal.classList.remove('visible');
+  });
+  rescheduleChoiceModal.addEventListener('click', function(e) {
+    if (e.target === rescheduleChoiceModal) rescheduleChoiceModal.classList.remove('visible');
+  });
+
+  document.getElementById('choice-this-lesson').addEventListener('click', function() {
+    openCancelConfirm('this');
+  });
+
+  document.getElementById('choice-all-lessons').addEventListener('click', function() {
+    openCancelConfirm('all');
+  });
+
+  // Back link returns to the "which lesson" choice modal.
+  document.getElementById('cancel-back').addEventListener('click', function() {
+    cancelModal.classList.remove('visible');
+    document.getElementById('cancel-modal-actions').classList.remove('actions-row');
+    if (pendingWeeklyOnly) {
+      stayModal.classList.add('visible'); // bypassed the choice, so return to Stay on track
+    } else {
+      cancelChoiceModal.classList.add('visible');
+    }
+  });
+
+  document.getElementById('cancel-choice-close').addEventListener('click', function() {
+    cancelChoiceModal.classList.remove('visible');
+    resetCancelModal();
+  });
+
+  cancelChoiceModal.addEventListener('click', function(e) {
+    if (e.target === cancelChoiceModal) { cancelChoiceModal.classList.remove('visible'); resetCancelModal(); }
+  });
+
+  // ── Progress Plan balance bar ──
+  var PP_TOTAL = (window.AppState && AppState.getPlan) ? AppState.getPlan() : 4;
+  var ppFilled = PP_TOTAL;
+  // Render one segment per plan lesson (4 or 8).
+  (function () {
+    var prog = document.querySelector('.pp-progress');
+    if (!prog) return;
+    prog.setAttribute('aria-valuemax', PP_TOTAL);
+    prog.innerHTML = '';
+    for (var i = 0; i < PP_TOTAL; i++) {
+      var seg = document.createElement('div');
+      seg.className = 'pp-segment filled';
+      prog.appendChild(seg);
+    }
+  })();
+  // Initial balance reflects whatever is currently booked in the store.
+  mlSetProgress(mlSumUnits(mlLessons));
+  function mlSetProgress(filled) {
+    ppFilled = Math.max(0, Math.min(PP_TOTAL, Math.round(filled * 2) / 2)); // half-units
+    var prog = document.querySelector('.pp-progress');
+    if (prog) {
+      prog.setAttribute('aria-valuenow', ppFilled);
+      // Fractional fill so a 25-min lesson (0.5) shows as half a segment.
+      prog.querySelectorAll('.pp-segment').forEach(function (seg, i) {
+        var fill = Math.max(0, Math.min(1, ppFilled - i));
+        seg.classList.remove('filled');
+        if (fill >= 1) seg.style.background = '#1d8a73';
+        else if (fill <= 0) seg.style.background = 'transparent';
+        else seg.style.background = 'linear-gradient(to right, #1d8a73 ' + (fill * 100) + '%, transparent ' + (fill * 100) + '%)';
+      });
+    }
+    var free = PP_TOTAL - ppFilled;
+    var statusText = document.querySelector('.pp-status-text');
+    var badge = document.querySelector('.pp-status-badge');
+    var ctaLabel = document.getElementById('schedule-cta-label');
+    var navBalance = document.getElementById('nav-balance-btn');
+    if (free <= 0) {
+      if (statusText) statusText.textContent = 'All lessons scheduled';
+      if (badge) badge.style.display = '';
+      if (ctaLabel) ctaLabel.textContent = 'Add extra lessons';
+      if (navBalance) navBalance.textContent = 'All lessons scheduled';
+    } else {
+      var sched = free + ' lesson' + (free === 1 ? '' : 's') + ' to schedule';
+      if (statusText) statusText.textContent = sched;
+      if (badge) badge.style.display = 'none';
+      if (ctaLabel) ctaLabel.textContent = 'Schedule lessons';
+      if (navBalance) navBalance.textContent = sched;
+    }
+  }
+
+  // Header CTA: in the "Add lessons" (full balance) state, open the "get more
+  // lessons" modal in place instead of navigating to the scheduling flow.
+  var moreModal = document.getElementById('ds-more-modal');
+  var scheduleCta = document.querySelector('.my-lessons-header .schedule-btn');
+  if (scheduleCta && moreModal) {
+    scheduleCta.addEventListener('click', function(e) {
+      if (ppFilled >= PP_TOTAL) {
+        e.preventDefault();
+        moreModal.classList.add('visible');
+      }
+    });
+    function closeMore() { moreModal.classList.remove('visible'); }
+    document.getElementById('ds-more-close').addEventListener('click', closeMore);
+    moreModal.addEventListener('click', function(e) { if (e.target === moreModal) closeMore(); });
+    // Progress Plan "Add lessons" button opens the same modal.
+    var ppAddBtn = document.getElementById('pp-add-lessons');
+    if (ppAddBtn) ppAddBtn.addEventListener('click', function() { moreModal.classList.add('visible'); });
+    // Option rows are inert for now (matching the scheduling upsell).
+  }
+
+  document.getElementById('cancel-modal-confirm').addEventListener('click', function() {
+    if (pendingCancelScope === 'weekly') {
+      cancelModal.classList.remove('visible');
+      weeklyFollowupModal.classList.add('visible');
+    } else if (pendingCancelScope === 'all') {
+      cancelModal.classList.remove('visible');
+      var allDate = pendingCancelDate;
+      resetCancelModal();
+      // Cancel just this weekday+time config's occurrences. Works for either
+      // plan and any number of configs (a 4-plan can now hold several too).
+      cancelWeeklyConfigCards(allDate);
+    } else {
+      cancelModal.classList.remove('visible');
+      var thisDate = pendingCancelDate;
+      if (pendingCancelCard) { pendingCancelCard.style.display = 'none'; pendingCancelCard = null; }
+      resetCancelModal();
+      // Drop the matching occurrence from the store; balance follows it
+      // (a 25-min occurrence frees 0.5, a 50-min frees 1).
+      mlRemoveOccurrence(thisDate);
+      mlSetProgress(mlSumUnits(mlLessons));
+    }
+  });
+
+  cancelModal.addEventListener('click', function(e) {
+    if (e.target === cancelModal) { cancelModal.classList.remove('visible'); resetCancelModal(); }
+  });
+
+  document.getElementById('cancel-modal-close').addEventListener('click', function() {
+    cancelModal.classList.remove('visible');
+    resetCancelModal();
+  });
+
+  document.getElementById('weekly-followup-close').addEventListener('click', function() {
+    weeklyFollowupModal.classList.remove('visible');
+    resetCancelModal();
+  });
+
+  weeklyFollowupModal.addEventListener('click', function(e) {
+    if (e.target === weeklyFollowupModal) { weeklyFollowupModal.classList.remove('visible'); resetCancelModal(); }
+  });
+
+  document.getElementById('followup-keep').addEventListener('click', function() {
+    weeklyFollowupModal.classList.remove('visible');
+    resetCancelModal();
+    document.getElementById('weekly-lessons-section').style.display = 'none';
+    var _rc = document.getElementById('reserved-lesson-card');
+    if (_rc) _rc.style.display = 'none';
+    document.querySelectorAll('.lesson-time-icon').forEach(function(icon) {
+      icon.style.display = 'none';
+    });
+  });
+
+  document.getElementById('followup-cancel-all').addEventListener('click', function() {
+    weeklyFollowupModal.classList.remove('visible');
+    resetCancelModal();
+    cancelAllLessons();
+    mlSetProgress(0);
+  });
+</script>
+<script>
+  var seeMoreBtn = document.getElementById('see-more-lessons');
+  var collapsibles = document.querySelectorAll('#upcoming-lessons-section .ml-collapsible');
+  var lessonsExpanded = false;
+  if (seeMoreBtn) {
+    if (!collapsibles.length) {
+      var smw = document.getElementById('see-more-wrap');
+      if (smw) smw.style.display = 'none';
+    }
+    seeMoreBtn.addEventListener('click', function() {
+      lessonsExpanded = !lessonsExpanded;
+      collapsibles.forEach(function(c) { c.classList.toggle('lesson-hidden', !lessonsExpanded); });
+      seeMoreBtn.innerHTML = lessonsExpanded
+        ? 'See fewer lessons <i data-lucide="minus" width="20" height="20" stroke-width="2.2"></i>'
+        : 'See more lessons <i data-lucide="plus" width="20" height="20" stroke-width="2.2"></i>';
+      lucide.createIcons();
+    });
+  }
+
+  var pastSeeMoreBtn = document.getElementById('past-see-more');
+  var pastHiddenCard = document.getElementById('past-hidden-card');
+  var pastExpanded = false;
+  if (pastSeeMoreBtn) {
+    pastSeeMoreBtn.addEventListener('click', function() {
+      pastExpanded = !pastExpanded;
+      if (pastHiddenCard) pastHiddenCard.classList.toggle('lesson-hidden', !pastExpanded);
+      pastSeeMoreBtn.innerHTML = pastExpanded
+        ? 'See fewer lessons <i data-lucide="minus" width="20" height="20" stroke-width="2.2"></i>'
+        : 'See more lessons <i data-lucide="plus" width="20" height="20" stroke-width="2.2"></i>';
+      lucide.createIcons();
+    });
+  }
+
+  document.querySelectorAll('.pp-tutor').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      document.querySelectorAll('.pp-tutor').forEach(function(b) { b.classList.remove('active'); });
+      btn.classList.add('active');
+    });
+  });
+</script>
+<script>lucide.createIcons();</script>
+</body>
+</html>

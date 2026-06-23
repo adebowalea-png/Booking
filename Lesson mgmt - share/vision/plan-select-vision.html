@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Choose a plan · Lesson Management</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../styles.css" />
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+  <script src="app-state.js"></script>
+  <style>
+    body { color: var(--text-primary); min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: var(--size-48) var(--size-24); }
+    .ps-wrap { width: 100%; max-width: 720px; }
+    .ps-head { text-align: center; margin-bottom: var(--size-32); }
+    .ps-eyebrow { font-size: var(--font-size-sm); font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--text-secondary); }
+    .ps-title { font-size: 30px; font-weight: 700; line-height: 1.2; margin-top: var(--size-8); }
+    .ps-sub { font-size: var(--font-size-base); color: var(--text-secondary); margin-top: var(--size-8); }
+    .ps-options { display: grid; grid-template-columns: 1fr 1fr; gap: var(--size-16); }
+    .ps-card {
+      text-align: left; background: var(--bg-primary); border: 1.5px solid var(--border-primary);
+      border-radius: var(--radius); padding: var(--size-24); cursor: pointer; font-family: var(--font);
+      display: flex; flex-direction: column; gap: var(--size-8); transition: border-color var(--transition-fast), box-shadow var(--transition-fast), transform var(--transition-fast);
+    }
+    .ps-card:hover { border-color: var(--brand); box-shadow: 0 6px 24px rgba(0,0,0,0.08); transform: translateY(-2px); }
+    .ps-card-icon { width: 44px; height: 44px; border-radius: 50%; background: var(--bg-secondary); display: flex; align-items: center; justify-content: center; color: var(--text-primary); }
+    .ps-card-title { font-size: var(--font-size-lg); font-weight: 700; }
+    .ps-card-rate { font-size: var(--font-size-base); font-weight: 600; color: var(--text-primary); }
+    .ps-card-desc { font-size: var(--font-size-sm); color: var(--text-secondary); line-height: 1.45; }
+    .ps-card.is-soon { cursor: default; opacity: 0.6; }
+    .ps-card.is-soon:hover { border-color: var(--border-primary); box-shadow: none; transform: none; }
+    .ps-soon-pill { align-self: flex-start; font-size: var(--font-size-xs); font-weight: 700; color: var(--text-secondary); background: var(--bg-secondary); border-radius: 999px; padding: 2px var(--size-8); margin-top: var(--size-4); }
+    @media (max-width: 600px) { .ps-options { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+  <div class="ps-wrap">
+    <div class="ps-head">
+      <div class="ps-eyebrow">Lesson Management vision</div>
+      <h1 class="ps-title">Choose a plan to explore</h1>
+      <p class="ps-sub">This sets the prototype's plan size and booked lessons. You can come back any time by re-entering.</p>
+    </div>
+    <div class="ps-options">
+      <button class="ps-card" id="ps-plan-4">
+        <div class="ps-card-icon"><i data-lucide="calendar" width="22" height="22" stroke-width="2"></i></div>
+        <div class="ps-card-title">4-lesson plan</div>
+        <div class="ps-card-rate">1 lesson per week</div>
+        <div class="ps-card-desc">One 50-min weekly lesson with Jonathan (Wednesdays, 14:00).</div>
+      </button>
+      <button class="ps-card" id="ps-plan-8">
+        <div class="ps-card-icon"><i data-lucide="calendar-days" width="22" height="22" stroke-width="2"></i></div>
+        <div class="ps-card-title">8-lesson plan</div>
+        <div class="ps-card-rate">4 lessons per week</div>
+        <div class="ps-card-desc">Four 25-min weekly lessons with Jonathan (Mon–Thu, 14:00–14:25).</div>
+      </button>
+    </div>
+  </div>
+  <script>
+    if (window.lucide) lucide.createIcons();
+    function choose(n) { AppState.setPlan(n); window.location.href = 'my-lessons-vision.html'; }
+    document.getElementById('ps-plan-4').addEventListener('click', function () { choose(4); });
+    document.getElementById('ps-plan-8').addEventListener('click', function () { choose(8); });
+  </script>
+</body>
+</html>

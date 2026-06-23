@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Confirmation — Reschedule Single</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../styles.css" />
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+</head>
+<body class="conf-body">
+
+<div class="conf-header">
+  <span class="conf-logo">Preply</span>
+</div>
+
+<div class="conf-content">
+  <div class="conf-section">
+    <div class="conf-avatar"><img src="https://randomuser.me/api/portraits/men/32.jpg" alt="Jonathan" /></div>
+    <div class="conf-text">
+      <h1 class="conf-heading">We've rescheduled your lesson.</h1>
+      <div class="conf-lesson-info">
+        <p class="conf-tutor-name">English with Jonathan</p>
+        <div class="conf-schedule">
+          <p>Sun, Jun 3, 12:00 – 12:50</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <button class="btn-on-color">Continue</button>
+</div>
+
+<script>lucide.createIcons();</script>
+<script>
+  (function() {
+    var params = new URLSearchParams(location.search);
+    var slots = params.getAll('slot');
+    var schedEl = document.querySelector('.conf-schedule');
+    if (slots.length && schedEl) {
+      schedEl.innerHTML = slots.map(function(s) { return '<p>' + s + '</p>'; }).join('');
+    }
+    document.querySelector('.btn-on-color').addEventListener('click', function() {
+      window.location.href = '../vision/my-lessons-vision.html';
+    });
+  })();
+</script>
+</body>
+</html>

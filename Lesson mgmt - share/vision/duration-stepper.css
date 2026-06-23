@@ -1,0 +1,298 @@
+/* ───────────────────────────────────────────────────────────────
+   Shared lesson-duration stepper + custom dropdown.
+   Wraps the (now hidden) #duration-select — kept as the state/source
+   of options + value — with a "Duration" header, −/+ stepper buttons,
+   and a custom styled dropdown (lock icons, "Insufficient balance").
+   Used by schedule / reschedule / reschedule-weekly.
+   ─────────────────────────────────────────────────────────────── */
+.duration-stepper-wrap {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: var(--size-8);
+  margin-top: var(--size-16);
+}
+.duration-stepper-label {
+  font-size: var(--font-size-xs);
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+}
+.duration-stepper {
+  display: flex;
+  align-items: stretch;
+  gap: var(--size-12);
+  height: 52px;
+}
+.duration-step {
+  flex-shrink: 0;
+  width: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-primary);
+  border-radius: var(--radius);
+  cursor: pointer;
+  color: var(--text-primary);
+  font-family: var(--font);
+  transition: background var(--transition-fast);
+}
+.duration-step:hover:not(:disabled) { background: var(--bg-secondary); }
+.duration-step:disabled { color: var(--text-tertiary); opacity: 0.45; cursor: default; }
+
+.duration-stepper-center {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--size-8);
+  background: var(--bg-primary);
+  border: 1px solid var(--border-primary);
+  border-radius: var(--radius);
+  font-size: var(--font-size-base);
+  font-weight: 600;
+  color: var(--text-primary);
+  cursor: pointer;
+}
+.duration-stepper-clock { flex-shrink: 0; color: var(--text-primary); }
+.duration-stepper-center .duration-chevron {
+  position: static;
+  flex-shrink: 0;
+  pointer-events: none;
+  color: var(--text-primary);
+  transition: transform var(--transition-fast);
+}
+.duration-stepper-center.open .duration-chevron { transform: rotate(180deg); }
+/* The native select is hidden; it only holds value + options. */
+.duration-stepper-center .duration-select { display: none; }
+
+/* ── Custom dropdown menu ── */
+.duration-menu {
+  display: none;
+  position: absolute;
+  top: calc(100% + var(--size-8));
+  left: 0;
+  right: 0;
+  z-index: 60;
+  max-height: 360px;
+  overflow-y: auto;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-primary);
+  border-radius: var(--radius);
+  box-shadow: 0 8px 28px rgba(18, 17, 23, 0.16);
+}
+.duration-menu.open { display: block; }
+.duration-opt {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--size-12);
+  padding: 12px var(--size-16);
+  background: var(--bg-primary);
+  border: none;
+  border-bottom: 1px solid var(--border-primary);
+  cursor: pointer;
+  text-align: left;
+  font-family: var(--font);
+}
+.duration-opt:last-child { border-bottom: none; }
+.duration-opt:hover:not(.is-locked):not(.is-current) { background: var(--bg-secondary); }
+.duration-opt.is-current { background: #E7F0FC; }
+.duration-opt:hover.is-locked { background: var(--bg-secondary); }
+.duration-opt-main { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.duration-opt-title { font-size: 15px; font-weight: 600; color: var(--text-primary); }
+.duration-opt-sub { font-size: var(--font-size-xs); font-weight: 400; color: var(--text-secondary); margin-top: 1px; }
+.duration-opt-icon { flex-shrink: 0; }
+.duration-opt-lock { color: var(--text-tertiary); }
+.duration-opt-check { color: var(--text-primary); }
+
+/* ── Insufficient-balance modals (locked duration click) ── */
+#ds-balance-modal .modal-card,
+#ds-freeup-modal .modal-card {
+  width: 440px;
+  padding: var(--size-32);
+  gap: var(--size-20);
+  position: relative;
+  align-items: center;
+  text-align: center;
+}
+.ds-balance-close,
+.ds-balance-back {
+  position: absolute; top: var(--size-20);
+  background: none; border: none; color: var(--text-secondary);
+  cursor: pointer; padding: var(--size-4); line-height: 0; border-radius: var(--radius-sm);
+}
+.ds-balance-close { right: var(--size-20); }
+.ds-balance-back { left: var(--size-20); }
+.ds-balance-close:hover, .ds-balance-back:hover { color: var(--text-primary); }
+
+/* Free-up-balance view */
+.ds-freeup-icon {
+  width: 84px; height: 84px; border-radius: 50%;
+  background: var(--bg-secondary);
+  display: flex; align-items: center; justify-content: center;
+  color: var(--text-primary);
+  margin-top: var(--size-8);
+}
+.ds-freeup-list { display: flex; flex-direction: column; gap: var(--size-12); width: 100%; text-align: left; }
+.ds-freeup-item {
+  display: flex; align-items: flex-start; gap: var(--size-12);
+  font-size: var(--font-size-base); color: var(--text-secondary); line-height: 1.4;
+}
+.ds-freeup-check { flex-shrink: 0; color: #1d8a73; margin-top: 2px; }
+
+/* Get-more-lessons view */
+#ds-more-modal .modal-card {
+  width: 560px;
+  padding: var(--size-32);
+  gap: var(--size-16);
+  position: relative;
+  overflow: hidden;
+  align-items: stretch;
+  text-align: left;
+}
+.ds-more-chart {
+  background: var(--bg-secondary);
+  margin: calc(var(--size-32) * -1) calc(var(--size-32) * -1) var(--size-4);
+  padding: var(--size-32) var(--size-32) var(--size-20);
+}
+.ds-more-plot {
+  display: flex;
+  align-items: flex-end;
+  height: 120px;
+  border-bottom: 1px solid var(--border-primary);
+}
+.ds-more-col { flex: 1; display: flex; align-items: flex-end; justify-content: center; height: 100%; }
+.ds-more-bar {
+  width: 64px; border-radius: 6px 6px 0 0;
+  display: flex; align-items: flex-start; justify-content: center;
+}
+.ds-more-bar-current { height: 20px; background: var(--bg-tertiary); }
+.ds-more-bar-plan { height: 72px; background: var(--brand); padding-top: var(--size-8); }
+.ds-more-bar-plan span { font-size: var(--font-size-base); font-weight: 700; color: var(--text-primary); }
+.ds-more-labels { display: flex; margin-top: var(--size-8); }
+.ds-more-labels span { flex: 1; text-align: center; font-size: var(--font-size-base); font-weight: 600; color: var(--text-primary); }
+.ds-more-renews { text-align: center; margin-top: var(--size-4); font-size: var(--font-size-sm); color: var(--text-secondary); }
+.ds-more-title { font-size: 26px; font-weight: 700; color: var(--text-primary); line-height: 1.25; }
+
+/* Free-up-balance list (booked lessons to cancel) */
+#ds-freeup-list-modal .modal-card {
+  width: 460px;
+  max-height: 80vh;
+  padding: var(--size-32);
+  gap: var(--size-16);
+  position: relative;
+  align-items: stretch;
+  text-align: left;
+}
+.ds-fb-title { font-size: var(--font-size-xl); font-weight: 700; color: var(--text-primary); line-height: 1.25; margin-top: var(--size-16); }
+.ds-fb-body { font-size: var(--font-size-base); color: var(--text-secondary); line-height: 1.5; margin-top: calc(var(--size-8) * -1); }
+/* The list scrolls within the capped card; title/body stay fixed above it. */
+.ds-fb-list { display: flex; flex-direction: column; gap: var(--size-8); overflow-y: auto; min-height: 0; flex: 1 1 auto; margin: 0 calc(var(--size-32) * -1); padding: 0 var(--size-32); }
+.ds-fb-section { display: flex; flex-direction: column; }
+.ds-fb-section-title {
+  font-size: var(--font-size-sm);
+  font-weight: 700;
+  color: var(--text-secondary);
+  padding: var(--size-8) 0 var(--size-4);
+}
+.ds-fb-row {
+  display: flex; align-items: center; gap: var(--size-16); width: 100%;
+  padding: var(--size-16) 0; background: none; border: none;
+  cursor: pointer; text-align: left; font-family: var(--font);
+}
+.ds-fb-row:not(:last-child) { border-bottom: 1px solid var(--border-primary); }
+.ds-fb-row:hover { background: var(--bg-secondary); }
+.ds-fb-icon { flex-shrink: 0; color: var(--text-secondary); }
+.ds-fb-info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.ds-fb-date { font-size: var(--font-size-base); font-weight: 700; color: var(--text-primary); }
+.ds-fb-sub { font-size: var(--font-size-sm); color: var(--text-secondary); }
+.ds-fb-toggle {
+  display: flex; align-items: center; justify-content: space-between; gap: var(--size-8);
+  width: 100%; padding: var(--size-16) 0; margin-top: var(--size-4);
+  background: none; border: none; border-top: 1px solid var(--border-primary);
+  cursor: pointer; font-family: var(--font); font-size: var(--font-size-base);
+  font-weight: 600; color: var(--text-primary); text-align: left;
+}
+.ds-fb-toggle-chevron { flex-shrink: 0; color: var(--text-secondary); transition: transform var(--transition-fast); }
+.ds-fb-toggle.open .ds-fb-toggle-chevron { transform: rotate(180deg); }
+.ds-fb-individual[hidden] { display: none; }
+.ds-fb-action {
+  flex-shrink: 0;
+  display: inline-flex; align-items: center; gap: var(--size-4);
+  font-size: var(--font-size-base); font-weight: 600;
+  color: var(--text-secondary);
+}
+.ds-fb-row:hover .ds-fb-action { color: var(--text-primary); }
+.ds-fb-chevron { flex-shrink: 0; }
+
+/* ── Sidebar "Progress Plan" progress graphic ── */
+.sidebar-progress { display: flex; flex-direction: column; gap: var(--size-16); }
+.sidebar-progress-title { font-size: var(--font-size-lg); font-weight: 700; color: var(--text-primary); }
+.sidebar-progress-bar {
+  display: flex;
+  gap: var(--size-4);
+}
+.sidebar-progress-seg {
+  flex: 1;
+  height: var(--size-16);
+  border-radius: 3px;
+  box-sizing: border-box;
+  background: transparent;
+  border: 1.5px solid #1d8a73;
+}
+.sidebar-progress-seg.filled { background: #1d8a73; border-color: #1d8a73; }
+.sidebar-progress-status {
+  display: flex;
+  align-items: center;
+  gap: var(--size-8);
+  font-size: var(--font-size-base);
+  font-weight: 600;
+  color: var(--text-primary);
+}
+.sidebar-progress-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px; height: 20px;
+  border-radius: 50%;
+  background: #1d8a73;
+  color: #ffffff;
+  flex-shrink: 0;
+}
+
+/* Booked/current timeslots: tutor avatar, white bg + same border as available */
+.slot.slot-booked,
+.slot.slot-current {
+  background: var(--bg-primary);
+  border: 2px solid var(--border-primary);
+}
+.slot-avatar {
+  width: 30px; height: 30px;
+  border-radius: 6px;
+  object-fit: cover;
+  display: block;
+  border: 0.5px solid var(--border-subtle);
+}
+.ds-balance-avatar {
+  width: 72px; height: 72px; border-radius: 50%; overflow: hidden;
+  border: 2px solid var(--bg-primary); margin-top: var(--size-8);
+}
+.ds-balance-avatar img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.ds-balance-title { font-size: var(--font-size-xl); font-weight: 700; color: var(--text-primary); line-height: 1.25; }
+.ds-balance-body { font-size: var(--font-size-base); color: var(--text-secondary); line-height: 1.5; }
+.ds-balance-actions { display: flex; flex-direction: column; gap: var(--size-12); width: 100%; margin-top: var(--size-8); }
+.ds-balance-primary, .ds-balance-secondary {
+  width: 100%; height: var(--size-btn); border-radius: var(--radius);
+  font-family: var(--font); font-size: var(--font-size-base); font-weight: 600;
+  color: var(--text-primary); cursor: pointer;
+}
+.ds-balance-primary { border: 2px solid var(--border-secondary); background: var(--brand); }
+.ds-balance-primary:hover { filter: brightness(0.95); }
+.ds-balance-secondary { border: 2px solid var(--border-secondary); background: var(--bg-primary); }
+.ds-balance-secondary:hover { background: var(--bg-secondary); }

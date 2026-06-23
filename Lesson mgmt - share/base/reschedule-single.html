@@ -1,0 +1,438 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Reschedule lesson (single)</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../styles.css" />
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+  <style>
+    .slot-current {
+      background: var(--bg-secondary);
+      border: none;
+      color: var(--text-primary);
+      cursor: default;
+      font-weight: 400;
+    }
+    .reschedule-slots {
+      display: flex;
+      flex-direction: column;
+      gap: var(--size-16);
+    }
+    .reschedule-block {
+      display: flex;
+      flex-direction: column;
+      gap: var(--size-8);
+    }
+    .reschedule-current-time {
+      font-size: var(--font-size-base);
+      color: var(--text-primary);
+    }
+  </style>
+</head>
+<body>
+
+<!-- Header — full width -->
+<div class="app-header">
+  <div class="app-header-title">
+    <h1>Reschedule lesson</h1>
+  </div>
+  <a href="../index.html" class="icon-btn" aria-label="Close">
+    <i data-lucide="x" width="20" height="20" stroke-width="2"></i>
+  </a>
+</div>
+
+<!-- Centred content -->
+<div class="content-wrapper">
+  <div class="main-layout">
+
+    <!-- Calendar -->
+    <div class="calendar">
+
+      <div id="single-view">
+        <div class="week-nav">
+          <span class="week-nav-label" id="week-label"></span>
+          <div class="week-nav-controls">
+            <button class="week-nav-today" id="today-btn" disabled>Today</button>
+            <button class="week-nav-btn" id="prev-week" aria-label="Previous week" style="padding-right: 2px;">
+              <i data-lucide="chevron-left" width="20" height="20" stroke-width="2.5"></i>
+            </button>
+            <button class="week-nav-btn" id="next-week" aria-label="Next week" style="padding-left: 2px;">
+              <i data-lucide="chevron-right" width="20" height="20" stroke-width="2.5"></i>
+            </button>
+          </div>
+        </div>
+        <div class="days-row" id="single-days-row"></div>
+        <div class="slots-grid" id="single-slots-grid"></div>
+        <div class="timezone-note">Times are shown in your time zone, Europe/Madrid (GMT+2)</div>
+      </div>
+
+    </div><!-- /calendar -->
+
+    <!-- Sidebar -->
+    <div class="sidebar">
+
+      <div class="tutor-info">
+        <div class="tutor-avatar">
+          <img src="https://randomuser.me/api/portraits/men/32.jpg" alt="Jonathan" />
+        </div>
+        <div class="tutor-details">
+          <div class="tutor-name">English with Jonathan</div>
+          <div class="tutor-lesson-duration">
+            <select id="duration-select" class="duration-select"></select>
+            <svg class="duration-chevron" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
+          </div>
+        </div>
+      </div>
+
+      <div class="reschedule-slots">
+        <div class="reschedule-block">
+          <div class="slots-label">Current lesson</div>
+          <div class="reschedule-current-time">Wed, 18 Mar · 14:00 – 14:50</div>
+        </div>
+        <div class="reschedule-block">
+          <div class="slots-label">New lesson</div>
+          <div id="new-slot-placeholder" class="lesson-slot-empty"><span>Select lesson time</span></div>
+          <div id="new-lesson-chip" class="lesson-chip">
+            <span class="lesson-chip-text" id="new-chip-text"></span>
+            <button class="lesson-chip-remove" id="new-chip-remove" aria-label="Remove">
+              <i data-lucide="x" width="20" height="20" stroke-width="2"></i>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div class="cta-section">
+        <button class="btn-primary btn-disabled" id="cta-btn">Reschedule</button>
+      </div>
+
+    </div><!-- /sidebar -->
+
+  </div><!-- /main-layout -->
+</div><!-- /content-wrapper -->
+
+<!-- Floating tooltip -->
+<div id="tooltip">
+  <div class="tooltip-box" id="tooltip-text"></div>
+  <div class="tooltip-arrow"></div>
+</div>
+
+<script src="../availability.js"></script>
+<script>
+  function addMinutes(time, mins) {
+    var parts = time.split(':');
+    var total = parseInt(parts[0]) * 60 + parseInt(parts[1]) + mins;
+    return String(Math.floor(total / 60)).padStart(2, '0') + ':' + String(total % 60).padStart(2, '0');
+  }
+
+  var TIMES     = ['11:00','11:30','12:00','12:30','14:00','14:30','15:00','15:30','16:00','16:30','19:00'];
+  var DAY_NAMES = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
+  var MONTHS    = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  var RECURRING = { col: 2, time: '14:00', state: 'current' }; // Wednesday
+  var sidebarDate = null; // set at init
+  var weekSlots = buildWeekSlots(RECURRING);
+
+  // ── Duration ───────────────────────────────────────────────────────
+  var ORIGINAL_DURATION = 50;
+  var ALL_DURATIONS = [
+    { value: 25,  label: '25 min lessons' },
+    { value: 50,  label: '50 min lessons' },
+  ];
+
+  // ── State ──────────────────────────────────────────────────────────
+  var currentWeekOffset = 0;
+  var singleSelections  = [];  // max 1: {weekOffset, col, time, day}
+  var conflictSlots     = [];
+  var selectedDuration  = ORIGINAL_DURATION;
+
+  var ctaBtn      = document.getElementById('cta-btn');
+  var tooltip     = document.getElementById('tooltip');
+  var tooltipTxt  = document.getElementById('tooltip-text');
+  var placeholder = document.getElementById('new-slot-placeholder');
+  var chip        = document.getElementById('new-lesson-chip');
+  var chipText    = document.getElementById('new-chip-text');
+
+  // ── Tooltip ────────────────────────────────────────────────────────
+  function attachTooltip(slot) {
+    slot.addEventListener('mouseenter', function() {
+      tooltipTxt.innerHTML = (slot.dataset.tooltip || '').replace(/\n/g, '<br>');
+      tooltip.classList.add('visible');
+      var rect = slot.getBoundingClientRect();
+      tooltip.style.left = (rect.left + rect.width / 2) + 'px';
+      tooltip.style.top = '0px';
+      requestAnimationFrame(function() {
+        tooltip.style.top = (rect.top - tooltip.offsetHeight - 6) + 'px';
+      });
+    });
+    slot.addEventListener('mouseleave', function() { tooltip.classList.remove('visible'); });
+  }
+
+  // ── Conflicts ──────────────────────────────────────────────────────
+  function clearConflicts() {
+    conflictSlots.forEach(function(s) {
+      s.classList.remove('slot-conflict');
+      s.classList.add('slot-available');
+    });
+    conflictSlots = [];
+  }
+
+  function getConflictRows() {
+    return Math.floor((selectedDuration - 1) / 30);
+  }
+
+  function applyConflicts(slot) {
+    var count = getConflictRows();
+    if (count === 0) return;
+    var row = slot.parentElement;
+    var colIdx = Array.from(row.children).indexOf(slot);
+    function blockDirection(startRow, dir) {
+      var r = startRow;
+      for (var i = 0; i < count; i++) {
+        r = dir > 0 ? r.nextElementSibling : r.previousElementSibling;
+        if (!r || !r.classList.contains('slots-row')) break;
+        var neighbor = r.children[colIdx];
+        if (neighbor && neighbor.classList.contains('slot-available')) {
+          neighbor.classList.remove('slot-available');
+          neighbor.classList.add('slot-conflict');
+          conflictSlots.push(neighbor);
+        }
+      }
+    }
+    blockDirection(row, 1);
+    blockDirection(row, -1);
+  }
+
+  // ── Sidebar ────────────────────────────────────────────────────────
+  function updateSidebar() {
+    if (singleSelections.length > 0) {
+      var sel = singleSelections[0];
+      chipText.textContent = sel.day + ' \u00b7 ' + sel.time + ' \u2013 ' + addMinutes(sel.time, selectedDuration);
+      placeholder.style.display = 'none';
+      chip.classList.add('visible');
+      ctaBtn.className = 'btn-primary btn-active';
+    } else {
+      placeholder.style.display = '';
+      chip.classList.remove('visible');
+      ctaBtn.className = 'btn-primary btn-disabled';
+    }
+  }
+
+  document.getElementById('new-chip-remove').addEventListener('click', function() {
+    singleSelections = [];
+    clearConflicts();
+    renderSingleGrid();
+    updateSidebar();
+  });
+
+  // ── Grid rendering ─────────────────────────────────────────────────
+  function getMondayOfCurrentWeek() {
+    var d = new Date(); d.setHours(0, 0, 0, 0);
+    var day = d.getDay();
+    d.setDate(d.getDate() + (day === 0 ? -6 : 1 - day));
+    return d;
+  }
+
+  function findSingleSel(weekOffset, col, time) {
+    for (var i = 0; i < singleSelections.length; i++) {
+      var s = singleSelections[i];
+      if (s.weekOffset === weekOffset && s.col === col && s.time === time) return i;
+    }
+    return -1;
+  }
+
+  function renderSingleGrid() {
+    conflictSlots = [];
+    var today  = new Date(); today.setHours(0, 0, 0, 0);
+    var monday = getMondayOfCurrentWeek();
+    var wednesday = new Date(monday); wednesday.setDate(monday.getDate() + 2);
+
+    var weekStart, weekEnd;
+    if (currentWeekOffset === 0) {
+      weekStart = wednesday;
+      weekEnd = new Date(wednesday); weekEnd.setDate(wednesday.getDate() + 6);
+    } else {
+      var offsetMonday = new Date(monday); offsetMonday.setDate(monday.getDate() + currentWeekOffset * 7);
+      weekStart = offsetMonday;
+      weekEnd = new Date(offsetMonday); weekEnd.setDate(offsetMonday.getDate() + 6);
+    }
+
+    var sM = MONTHS[weekStart.getMonth()], eM = MONTHS[weekEnd.getMonth()];
+    document.getElementById('week-label').textContent =
+      sM + ' ' + weekStart.getDate() + ' \u2013 ' + (sM !== eM ? eM + ' ' : '') + weekEnd.getDate();
+
+    document.getElementById('prev-week').disabled = (currentWeekOffset === 0);
+    document.getElementById('next-week').disabled = (currentWeekOffset === 4);
+    document.getElementById('today-btn').disabled = (currentWeekOffset === 0);
+
+    var headerMonday = currentWeekOffset === 0 ? wednesday : weekStart;
+
+    // Day headers
+    var daysRow = document.getElementById('single-days-row');
+    daysRow.innerHTML = '';
+    for (var i = 0; i < 7; i++) {
+      var d = new Date(headerMonday); d.setDate(headerMonday.getDate() + i);
+      var isToday = d.getTime() === today.getTime();
+      var hCell = document.createElement('div');
+      hCell.className = 'day-label' + (isToday ? ' today' : '');
+      var rawI = d.getDay() === 0 ? 6 : d.getDay() - 1;
+      hCell.innerHTML = '<span class="day-name">' + DAY_NAMES[rawI].slice(0, 3) + '</span><span class="day-date">' + d.getDate() + '</span>';
+      daysRow.appendChild(hCell);
+    }
+
+    // Slot map
+    var entries = weekSlots[String(currentWeekOffset)] || [RECURRING];
+    var slotMap = {};
+    entries.forEach(function(s) { slotMap[s.col + ':' + s.time] = s; });
+
+    // Render rows
+    var grid = document.getElementById('single-slots-grid');
+    grid.innerHTML = '';
+    TIMES.forEach(function(time) {
+      var row = document.createElement('div');
+      row.className = 'slots-row';
+      for (var col = 0; col < 7; col++) {
+        var slotCol = currentWeekOffset === 0 ? (2 + col) % 7 : col;
+        var entry = slotMap[slotCol + ':' + time];
+        var isPast = false;
+        var cell = document.createElement('div');
+
+        if (entry && entry.state === 'current') {
+          cell.className = 'slot slot-current';
+          cell.textContent = time;
+          var dCur = new Date(headerMonday); dCur.setDate(headerMonday.getDate() + col);
+          var curRawI = dCur.getDay() === 0 ? 6 : dCur.getDay() - 1;
+          var curLabel = DAY_NAMES[curRawI].slice(0, 3) + ', ' + dCur.getDate() + ' ' + MONTHS[dCur.getMonth()];
+          var isCurrentLesson = sidebarDate && dCur.getTime() === sidebarDate.getTime();
+          cell.dataset.tooltip = (isCurrentLesson ? 'Current lesson' : 'Lesson with Jonathan G.')
+            + '\n' + curLabel + ' \u00b7 ' + time + ' \u2013 ' + addMinutes(time, 50);
+          attachTooltip(cell);
+        } else if (!entry || isPast) {
+          cell.className = 'slot slot-unavailable';
+        } else {
+          var dCell = new Date(headerMonday); dCell.setDate(headerMonday.getDate() + col);
+          var cellRawI = dCell.getDay() === 0 ? 6 : dCell.getDay() - 1;
+          var dateLabel = DAY_NAMES[cellRawI].slice(0, 3) + ', ' + dCell.getDate() + ' ' + MONTHS[dCell.getMonth()];
+          var selIdx = findSingleSel(currentWeekOffset, slotCol, time);
+          cell.className = 'slot ' + (selIdx >= 0 ? 'slot-selected' : 'slot-available');
+          cell.textContent = time;
+          cell.dataset.day  = dateLabel;
+          cell.dataset.time = time;
+          cell.dataset.col  = slotCol;
+          cell.addEventListener('click', handleSingleSlotClick);
+        }
+        row.appendChild(cell);
+      }
+      grid.appendChild(row);
+    });
+
+    // Re-apply conflicts for any existing selection in this week
+    singleSelections.filter(function(s) {
+      return s.weekOffset === currentWeekOffset;
+    }).forEach(function(s) {
+      var gridPos = currentWeekOffset === 0 ? (s.col - 2 + 7) % 7 : s.col;
+      grid.querySelectorAll('.slots-row').forEach(function(row) {
+        var cell = row.children[gridPos];
+        if (cell && cell.classList.contains('slot-selected')) applyConflicts(cell);
+      });
+    });
+  }
+
+  function handleSingleSlotClick() {
+    var slot = this;
+    var col  = parseInt(slot.dataset.col);
+    var time = slot.dataset.time;
+    var idx  = findSingleSel(currentWeekOffset, col, time);
+    if (idx >= 0) {
+      // Deselect
+      singleSelections.splice(idx, 1);
+    } else {
+      // Replace (max 1)
+      singleSelections = [{ weekOffset: currentWeekOffset, col: col, time: time, day: slot.dataset.day }];
+    }
+    renderSingleGrid();
+    updateSidebar();
+  }
+
+  // ── Week navigation ────────────────────────────────────────────────
+  document.getElementById('prev-week').addEventListener('click', function() {
+    if (currentWeekOffset > 0) { currentWeekOffset--; renderSingleGrid(); updateSidebar(); }
+  });
+  document.getElementById('next-week').addEventListener('click', function() {
+    if (currentWeekOffset < 4) { currentWeekOffset++; renderSingleGrid(); updateSidebar(); }
+  });
+  document.getElementById('today-btn').addEventListener('click', function() {
+    currentWeekOffset = 0; renderSingleGrid(); updateSidebar();
+  });
+
+  // ── Duration select ────────────────────────────────────────────────
+  var durationSelect = document.getElementById('duration-select');
+  ALL_DURATIONS.filter(function(d) { return d.value <= ORIGINAL_DURATION; }).forEach(function(d) {
+    var opt = document.createElement('option');
+    opt.value = d.value;
+    opt.textContent = d.label;
+    if (d.value === ORIGINAL_DURATION) opt.selected = true;
+    durationSelect.appendChild(opt);
+  });
+
+  var _durationSizer = (function() {
+    var s = document.createElement('span');
+    s.style.cssText = "visibility:hidden;position:absolute;top:-9999px;white-space:nowrap;font-family:'Figtree',system-ui,sans-serif;font-size:16px;font-weight:600;";
+    document.body.appendChild(s);
+    return s;
+  })();
+
+  function resizeDurationSelect() {
+    var sel = document.getElementById('duration-select');
+    _durationSizer.textContent = sel.options[sel.selectedIndex].text;
+    sel.style.width = _durationSizer.offsetWidth + 'px';
+  }
+
+  durationSelect.addEventListener('change', function() {
+    selectedDuration = parseInt(this.value);
+    clearConflicts();
+    // Re-apply conflicts from current selection with new duration
+    if (singleSelections.length > 0) {
+      var s = singleSelections[0];
+      if (s.weekOffset === currentWeekOffset) {
+        var grid = document.getElementById('single-slots-grid');
+        grid.querySelectorAll('.slots-row').forEach(function(row) {
+          var cell = row.children[s.col];
+          if (cell && cell.classList.contains('slot-selected')) applyConflicts(cell);
+        });
+      }
+    }
+    updateSidebar();
+    resizeDurationSelect();
+  });
+
+  resizeDurationSelect();
+
+  // ── Init ───────────────────────────────────────────────────────────
+  // Compute sidebarDate before renderSingleGrid so tooltip logic has access to it
+  (function() {
+    var t = new Date(); t.setHours(0,0,0,0);
+    var tc = t.getDay() === 0 ? 6 : t.getDay() - 1;
+    var daysUntil = (RECURRING.col - tc + 7) % 7 || 7;
+    var d = new Date(t); d.setDate(t.getDate() + daysUntil);
+    sidebarDate = d;
+    var di = d.getDay() === 0 ? 6 : d.getDay() - 1;
+    var label = DAY_NAMES[di].slice(0,3) + ', ' + d.getDate() + ' ' + MONTHS[d.getMonth()]
+              + ' \u00b7 ' + RECURRING.time + ' \u2013 ' + addMinutes(RECURRING.time, 50);
+    document.querySelector('.reschedule-current-time').textContent = label;
+  })();
+  renderSingleGrid();
+  updateSidebar();
+
+  document.getElementById('cta-btn').addEventListener('click', function() {
+    if (this.classList.contains('btn-disabled')) return;
+    var sel = singleSelections[0];
+    var slotStr = sel.day + ', ' + sel.time + ' \u2013 ' + addMinutes(sel.time, selectedDuration);
+    window.location.href = 'confirmation-reschedule-single.html?slot=' + encodeURIComponent(slotStr);
+  });
+</script>
+<script>lucide.createIcons();</script>
+</body>
+</html>

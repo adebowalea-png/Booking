@@ -1,0 +1,1784 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Toggle upcoming lessons visibility on scheduling — sidebar</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../styles.css" />
+  <link rel="stylesheet" href="lesson-flows.css" />
+  <link rel="stylesheet" href="duration-stepper.css" />
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+  <script src="app-state.js"></script>
+  <script>if (window.AppState) AppState.redirectIfReloaded('plan-select-vision.html');</script>
+  <script src="lesson-flows.js"></script>
+  <script src="duration-stepper.js"></script>
+  <style>
+    /* Allow mouse to enter tooltip so buttons are clickable */
+    #tooltip { pointer-events: auto; transform: none; align-items: flex-start; }
+
+    /* Tooltip card overrides */
+    .tooltip-box {
+      background: var(--bg-primary); color: var(--text-primary);
+      border-radius: var(--radius-sm); padding: var(--size-16);
+      text-align: left;
+      border: 0.5px solid var(--border-primary);
+      box-shadow: var(--shadow-card);
+      width: 280px;
+    }
+    .tooltip-arrow { display: none; }
+    .tooltip-header { display: flex; flex-direction: column; align-items: flex-start; gap: var(--size-8); }
+    .tooltip-avatar {
+      width: var(--size-avatar-sm); height: var(--size-avatar-sm); border-radius: var(--radius-sm);
+      border: 0.5px solid var(--border-subtle); object-fit: cover; flex-shrink: 0;
+    }
+    .tooltip-title { font-weight: 600; font-size: var(--font-size-base); }
+    .tooltip-subtitle { color: var(--text-secondary); font-weight: 400; }
+    .tooltip-actions { display: flex; align-items: center; gap: var(--size-8); margin-top: var(--size-16); }
+    .tooltip-action-btn {
+      background: none; cursor: pointer;
+      font-family: inherit; font-size: var(--font-size-sm); font-weight: 600;
+      color: var(--text-primary); padding: 0 var(--size-16); border-radius: var(--radius);
+      height: var(--size-40); border: 2px solid var(--border-secondary);
+      transition: background var(--transition-fast);
+    }
+    .tooltip-action-btn:hover { background: var(--hover-bg); }
+    .tooltip-action-cancel { background: var(--destructive-bg); color: var(--text-inverted); border-color: transparent; }
+    .tooltip-action-cancel:hover { background: var(--bg-destructive-hover); border-color: transparent; }
+
+    /* Cancel modal */
+    #cancel-modal .modal-card { gap: var(--size-16); }
+    #cancel-modal .cancel-form-label {
+      font-size: var(--font-size-sm); font-weight: 600; color: var(--text-primary); margin-bottom: -8px;
+    }
+    #cancel-modal select, #cancel-modal textarea {
+      width: 100%; box-sizing: border-box;
+      font-family: var(--font); font-size: var(--font-size-base); color: var(--text-primary);
+      background: var(--bg-primary); border: 1px solid var(--border-primary);
+      border-radius: var(--radius-sm); padding: var(--size-8) var(--size-12);
+      appearance: none; -webkit-appearance: none;
+    }
+    #cancel-modal select:focus, #cancel-modal textarea:focus { outline: none; border-color: var(--border-secondary); }
+    #cancel-modal textarea { resize: none; height: 80px; line-height: 1.5; }
+
+    /* ── Plan picker overlay ────────────────────────────── */
+    .plan-picker-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(255,255,255,0.97);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+    }
+    .plan-picker-eyebrow {
+      font-size: var(--font-size-sm);
+      font-weight: 600;
+      color: #888;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      margin-bottom: var(--size-8);
+    }
+    .plan-picker-heading {
+      font-size: var(--font-size-xl);
+      font-weight: 700;
+      color: #111;
+      margin-bottom: var(--size-32);
+    }
+    .plan-picker-options {
+      display: flex;
+      gap: var(--size-16);
+    }
+    .plan-option-btn {
+      width: 120px;
+      height: 120px;
+      border: 2px solid var(--border-primary);
+      border-radius: var(--radius);
+      cursor: pointer;
+      background: var(--bg-primary);
+      transition: background var(--transition-fast), border-color var(--transition-fast);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: var(--size-4);
+    }
+    .plan-option-btn:hover {
+      background: var(--bg-secondary);
+    }
+    .plan-option-count {
+      font-size: 36px;
+      font-weight: 700;
+      color: #111;
+      line-height: 1;
+    }
+    .plan-option-label {
+      font-size: var(--font-size-sm);
+      color: #666;
+      font-weight: 500;
+    }
+
+    /* ── Sidebar column (sidebar + my-lessons block) ────── */
+    .sidebar-col {
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+      width: 360px;
+      flex-shrink: 0;
+      border: 0.5px solid var(--border-primary);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow-card);
+      overflow: hidden;
+    }
+    .sidebar-col .sidebar {
+      width: 100%;
+      border: none;
+      border-radius: 0;
+      box-shadow: none;
+    }
+
+    /* ── My lessons accordion ────────────────────────────── */
+    .my-lessons-accordion {
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      border-top: 0.5px solid var(--border-primary);
+      background: var(--bg-primary);
+    }
+    .my-lessons-toggle-btn {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      width: 100%;
+      height: 56px;
+      padding: 0 var(--size-16);
+      background: var(--bg-primary);
+      border: none;
+      font-family: inherit;
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--text-primary);
+      cursor: pointer;
+      text-align: left;
+    }
+    .my-lessons-toggle-chevron {
+      margin-left: auto;
+      color: var(--text-tertiary);
+      display: flex;
+      align-items: center;
+      padding: 4px;
+      border-radius: var(--radius-sm);
+      transition: background var(--transition-base);
+    }
+    .my-lessons-toggle-chevron svg {
+      transition: transform 0.2s ease;
+    }
+    .my-lessons-accordion.open .my-lessons-toggle-chevron svg {
+      transform: rotate(180deg);
+    }
+    .my-lessons-toggle-btn:hover .my-lessons-toggle-chevron { background: var(--bg-secondary); }
+    .my-lessons-accordion-body {
+      max-height: 0;
+      overflow: hidden;
+      transition: max-height 0.1s ease, background var(--transition-base);
+    }
+    .my-lessons-accordion.open .my-lessons-accordion-body {
+      max-height: 520px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      padding: var(--size-4) var(--size-16) var(--size-16) var(--size-16);
+      gap: var(--size-16);
+    }
+
+    .my-lessons-accordion .lesson-cards { gap: 4px; }
+
+    /* ── Panel chips ─────────────────────────────────────── */
+    .lesson-chip--scheduled {
+      background: var(--bg-secondary);
+      border: none;
+      position: relative;
+    }
+    .lesson-chip--reserved {
+      background: transparent;
+      border: 2px dashed var(--border-primary) !important;
+      position: relative;
+    }
+    .lesson-chip-dots {
+      background: none;
+      border: none;
+      cursor: pointer;
+      padding: var(--size-4) 6px;
+      color: var(--text-primary);
+      display: flex;
+      align-items: center;
+      border-radius: 6px;
+      transition: background var(--transition-fast), color var(--transition-fast);
+      flex-shrink: 0;
+    }
+    .lesson-chip-dots:hover { background: #f0f0f0; color: #444; }
+    .lesson-chip-menu {
+      position: fixed;
+      /* top and right set dynamically via JS */
+      background: var(--bg-primary);
+      border: 1px solid #e5e5e5;
+      border-radius: 10px;
+      box-shadow: 0 6px 20px rgba(0,0,0,0.12);
+      z-index: 200;
+      min-width: 168px;
+      padding: var(--size-4) 0;
+      overflow: hidden;
+    }
+    .lesson-chip-menu.hidden { display: none; }
+    .menu-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      width: 100%;
+      padding: 10px 14px;
+      background: none;
+      border: none;
+      text-align: left;
+      cursor: pointer;
+      font-size: var(--font-size-sm);
+      color: #222;
+      font-family: inherit;
+      transition: background var(--transition-fast);
+    }
+    .menu-item:hover { background: #f5f5f5; }
+    .menu-item--cancel { color: var(--destructive-text); }
+    .menu-item--cancel:hover { background: var(--bg-destructive-light); }
+    .lesson-chip-repeat {
+      display: inline-flex;
+      align-items: center;
+      color: var(--text-primary);
+      margin-right: 6px;
+      flex-shrink: 0;
+    }
+
+    /* "Lessons to schedule" placeholder list (sidebar) */
+    .slots-to-schedule { display: flex; flex-direction: column; gap: var(--size-8); margin-top: var(--size-20); }
+    .slots-to-schedule-title { font-size: var(--font-size-base); font-weight: 700; color: var(--text-primary); }
+    .slots-to-schedule-list {
+      display: flex; flex-direction: column; gap: var(--size-8);
+      max-height: 296px; overflow-y: auto; /* ~5 boxes, then scroll */
+      margin: 0 calc(-1 * var(--size-4)); padding: 2px var(--size-4);
+    }
+    .slots-to-schedule-list .lesson-slot-empty {
+      border: 1.5px dashed var(--border-primary); border-radius: var(--radius);
+      padding: 14px var(--size-16); color: var(--text-tertiary);
+      font-size: var(--font-size-base); font-weight: 500;
+    }
+    .slots-to-schedule-list .lesson-chip {
+      display: flex; align-items: center; justify-content: space-between; gap: var(--size-8);
+      border: 1.5px solid var(--text-primary); border-radius: var(--radius);
+      padding: 14px var(--size-16); background: var(--bg-primary);
+    }
+    .slots-to-schedule-list .lesson-chip-text { font-size: var(--font-size-base); font-weight: 600; color: var(--text-primary); }
+    .slots-to-schedule-list .lesson-chip-remove {
+      background: none; border: none; cursor: pointer; color: var(--text-secondary);
+      padding: 2px; line-height: 0; display: flex; flex-shrink: 0;
+    }
+    .slots-to-schedule-list .lesson-chip-remove:hover { color: var(--text-primary); }
+  </style>
+</head>
+<body>
+
+<!-- Header — full width -->
+<div class="app-header">
+  <div class="app-header-title">
+    <h1 id="schedule-header">Schedule your lessons</h1>
+  </div>
+  <a href="my-lessons-vision.html" class="icon-btn" aria-label="Close">
+    <i data-lucide="x" width="20" height="20" stroke-width="2"></i>
+  </a>
+</div>
+<script>
+  if (new URLSearchParams(location.search).has('manage')) {
+    var _sh = document.getElementById('schedule-header');
+    if (_sh) _sh.textContent = 'Manage Schedule';
+  }
+</script>
+
+<!-- Plan picker overlay -->
+<div class="plan-picker-overlay" id="plan-picker-overlay">
+  <div class="plan-picker-eyebrow">Toggle upcoming lessons visibility</div>
+  <div class="plan-picker-heading">How many lessons are in your plan?</div>
+  <div class="plan-picker-options">
+    <button class="plan-option-btn" data-count="4">
+      <span class="plan-option-count">4</span>
+      <span class="plan-option-label">lessons</span>
+    </button>
+    <button class="plan-option-btn" data-count="8">
+      <span class="plan-option-count">8</span>
+      <span class="plan-option-label">lessons</span>
+    </button>
+  </div>
+</div>
+
+<!-- Centred content (hidden until plan is picked) -->
+<div class="content-wrapper" id="content-wrapper" style="display:none">
+  <div class="main-layout">
+
+    <!-- Calendar -->
+    <div class="calendar">
+
+      <div class="tabs">
+        <div class="tab active">
+          <div class="tab-icon">
+            <i data-lucide="repeat-2" stroke-width="1.8"></i>
+          </div>
+          <div class="tab-text">
+            <div class="tab-title-text">Weekly lessons</div>
+            <div class="tab-subtitle">Repeat lessons at the same time every week</div>
+          </div>
+        </div>
+        <div class="tab">
+          <div class="tab-icon">
+            <i data-lucide="calendar" stroke-width="1.8"></i>
+          </div>
+          <div class="tab-text">
+            <div class="tab-title-text">Single lessons</div>
+            <div class="tab-subtitle">Choose different times for each lesson</div>
+          </div>
+        </div>
+      </div>
+
+      <div id="weekly-view">
+      <div class="days-row">
+        <div class="day-label"><span>Mon</span></div>
+        <div class="day-label"><span>Tue</span></div>
+        <div class="day-label"><span>Wed</span></div>
+        <div class="day-label"><span>Thu</span></div>
+        <div class="day-label"><span>Fri</span></div>
+        <div class="day-label"><span>Sat</span></div>
+        <div class="day-label"><span>Sun</span></div>
+      </div>
+
+      <div class="slots-grid">
+
+        <!-- 11:00 -->
+        <div class="slots-row">
+          <div class="slot slot-available" data-day="Monday" data-time="11:00">11:00</div>
+          <div class="slot slot-unavailable"></div>
+          <div class="slot slot-unavailable"></div>
+          <div class="slot slot-available" data-day="Thursday" data-time="11:00">11:00</div>
+          <div class="slot slot-available" data-day="Friday" data-time="11:00">11:00</div>
+          <div class="slot slot-available" data-day="Saturday" data-time="11:00">11:00</div>
+          <div class="slot slot-unavailable"></div>
+        </div>
+
+        <!-- 11:30 -->
+        <div class="slots-row">
+          <div class="slot slot-available" data-day="Monday" data-time="11:30">11:30</div>
+          <div class="slot slot-unavailable"></div>
+          <div class="slot slot-unavailable"></div>
+          <div class="slot slot-unavailable"></div>
+          <div class="slot slot-available" data-day="Friday" data-time="11:30">11:30</div>
+          <div class="slot slot-available" data-day="Saturday" data-time="11:30">11:30</div>
+          <div class="slot slot-unavailable"></div>
+        </div>
+
+        <!-- 12:00 -->
+        <div class="slots-row">
+          <div class="slot slot-unavailable"></div>
+          <div class="slot slot-unavailable"></div>
+          <div class="slot slot-available" data-day="Wednesday" data-time="12:00">12:00</div>
+          <div class="slot slot-unavailable"></div>
+          <div class="slot slot-unavailable"></div>
+          <div class="slot slot-available" data-day="Saturday" data-time="12:00">12:00</div>
+          <div class="slot slot-unavailable"></div>
+        </div>
+
+        <!-- 12:30 -->
+        <div class="slots-row">
+          <div class="slot slot-unavailable"></div>
+          <div class="slot slot-unavailable"></div>
+          <div class="slot slot-available" data-day="Wednesday" data-time="12:30">12:30</div>
+          <div class="slot slot-unavailable"></div>
+          <div class="slot slot-unavailable"></div>
+          <div class="slot slot-available" data-day="Saturday" data-time="12:30">12:30</div>
+          <div class="slot slot-unavailable"></div>
+        </div>
+
+        <!-- 14:00 -->
+        <div class="slots-row">
+          <div class="slot slot-available" data-day="Monday" data-time="14:00">14:00</div>
+          <div class="slot slot-available" data-day="Tuesday" data-time="14:00">14:00</div>
+          <div class="slot slot-booked" data-recurring="1" data-day="Wednesday" data-time="14:00" data-tooltip="Lesson with Jonathan G.&#10;Every Wednesday · 14:00 – 14:50"><img class="slot-avatar" src="https://randomuser.me/api/portraits/men/32.jpg" alt="Jonathan" /></div>
+          <div class="slot slot-available" data-day="Thursday" data-time="14:00">14:00</div>
+          <div class="slot slot-available" data-day="Friday" data-time="14:00">14:00</div>
+          <div class="slot slot-unavailable"></div>
+          <div class="slot slot-unavailable"></div>
+        </div>
+
+        <!-- 14:30 -->
+        <div class="slots-row">
+          <div class="slot slot-available" data-day="Monday" data-time="14:30">14:30</div>
+          <div class="slot slot-available" data-day="Tuesday" data-time="14:30">14:30</div>
+          <div class="slot slot-available" data-day="Wednesday" data-time="14:30">14:30</div>
+          <div class="slot slot-unavailable"></div>
+          <div class="slot slot-available" data-day="Friday" data-time="14:30">14:30</div>
+          <div class="slot slot-unavailable"></div>
+          <div class="slot slot-unavailable"></div>
+        </div>
+
+        <!-- 15:00 -->
+        <div class="slots-row">
+          <div class="slot slot-unavailable"></div>
+          <div class="slot slot-unavailable"></div>
+          <div class="slot slot-available" data-day="Wednesday" data-time="15:00">15:00</div>
+          <div class="slot slot-unavailable"></div>
+          <div class="slot slot-available" data-day="Friday" data-time="15:00">15:00</div>
+          <div class="slot slot-unavailable"></div>
+          <div class="slot slot-unavailable"></div>
+        </div>
+
+        <!-- 15:30 -->
+        <div class="slots-row">
+          <div class="slot slot-unavailable"></div>
+          <div class="slot slot-unavailable"></div>
+          <div class="slot slot-available" data-day="Wednesday" data-time="15:30">15:30</div>
+          <div class="slot slot-available" data-day="Thursday" data-time="15:30">15:30</div>
+          <div class="slot slot-available" data-day="Friday" data-time="15:30">15:30</div>
+          <div class="slot slot-unavailable"></div>
+          <div class="slot slot-unavailable"></div>
+        </div>
+
+        <!-- 16:00 -->
+        <div class="slots-row">
+          <div class="slot slot-available" data-day="Monday" data-time="16:00">16:00</div>
+          <div class="slot slot-available" data-day="Tuesday" data-time="16:00">16:00</div>
+          <div class="slot slot-unavailable"></div>
+          <div class="slot slot-unavailable"></div>
+          <div class="slot slot-unavailable"></div>
+          <div class="slot slot-unavailable"></div>
+          <div class="slot slot-unavailable"></div>
+        </div>
+
+        <!-- 16:30 -->
+        <div class="slots-row">
+          <div class="slot slot-available" data-day="Monday" data-time="16:30">16:30</div>
+          <div class="slot slot-available" data-day="Tuesday" data-time="16:30">16:30</div>
+          <div class="slot slot-unavailable"></div>
+          <div class="slot slot-available" data-day="Thursday" data-time="16:30">16:30</div>
+          <div class="slot slot-unavailable"></div>
+          <div class="slot slot-unavailable"></div>
+          <div class="slot slot-unavailable"></div>
+        </div>
+
+        <!-- 19:00 -->
+        <div class="slots-row">
+          <div class="slot slot-unavailable"></div>
+          <div class="slot slot-available" data-day="Tuesday" data-time="19:00">19:00</div>
+          <div class="slot slot-unavailable"></div>
+          <div class="slot slot-unavailable"></div>
+          <div class="slot slot-available" data-day="Friday" data-time="19:00">19:00</div>
+          <div class="slot slot-unavailable"></div>
+          <div class="slot slot-unavailable"></div>
+        </div>
+
+      </div><!-- /slots-grid -->
+
+      <div class="timezone-note">Times are shown in your time zone, Europe/Madrid (GMT+2)</div>
+
+      </div><!-- /weekly-view -->
+
+      <div id="single-view" style="display:none">
+        <div class="week-nav">
+          <span class="week-nav-label" id="week-label"></span>
+          <div class="week-nav-controls">
+            <button class="week-nav-today" id="today-btn" disabled>Today</button>
+            <button class="week-nav-btn" id="prev-week" aria-label="Previous week" style="padding-right: 2px;">
+              <i data-lucide="chevron-left" width="20" height="20" stroke-width="2.5"></i>
+            </button>
+            <button class="week-nav-btn" id="next-week" aria-label="Next week" style="padding-left: 2px;">
+              <i data-lucide="chevron-right" width="20" height="20" stroke-width="2.5"></i>
+            </button>
+          </div>
+        </div>
+        <div class="days-row" id="single-days-row"></div>
+        <div class="slots-grid" id="single-slots-grid"></div>
+        <div class="timezone-note">Times are shown in your time zone, Europe/Madrid (GMT+2)</div>
+      </div><!-- /single-view -->
+
+    </div><!-- /calendar -->
+
+    <!-- Sidebar column -->
+    <div class="sidebar-col">
+    <div class="sidebar">
+
+      <div class="tutor-info">
+        <div class="tutor-avatar">
+          <img src="https://randomuser.me/api/portraits/men/32.jpg" alt="Jonathan" />
+        </div>
+        <div class="tutor-details">
+          <div class="tutor-name">English with Jonathan</div>
+        </div>
+      </div>
+
+      <div class="schedule-slots">
+        <div class="sidebar-progress-title">Progress Plan</div>
+        <div class="sidebar-progress">
+          <div class="sidebar-progress-bar">
+            <div class="sidebar-progress-seg filled"></div>
+            <div class="sidebar-progress-seg filled"></div>
+            <div class="sidebar-progress-seg filled"></div>
+            <div class="sidebar-progress-seg filled"></div>
+          </div>
+          <div class="sidebar-progress-status">
+            <span class="sidebar-progress-text">All lessons scheduled</span>
+            <span class="sidebar-progress-badge"><i data-lucide="check" width="14" height="14" stroke-width="3"></i></span>
+          </div>
+        </div>
+      </div>
+
+      <div class="duration-stepper-wrap">
+        <div class="duration-stepper-label">Duration</div>
+        <div class="duration-stepper">
+          <button type="button" class="duration-step duration-step-minus" aria-label="Shorter lesson"><i data-lucide="minus" width="20" height="20" stroke-width="2.4"></i></button>
+          <div class="duration-stepper-center">
+            <i data-lucide="clock" class="duration-stepper-clock" width="18" height="18" stroke-width="2"></i>
+            <span class="duration-stepper-value" id="duration-value"></span>
+            <svg class="duration-chevron" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
+            <select id="duration-select" class="duration-select">
+              <option value="25">25 minutes</option>
+              <option value="50" selected>50 minutes</option>
+              <option value="80">1 hour, 20 minutes</option>
+              <option value="110">1 hour, 50 minutes</option>
+              <option value="140">2 hours, 20 minutes</option>
+              <option value="170">2 hours, 50 minutes</option>
+              <option value="200">3 hours, 20 minutes</option>
+            </select>
+          </div>
+          <button type="button" class="duration-step duration-step-plus" aria-label="Longer lesson"><i data-lucide="plus" width="20" height="20" stroke-width="2.4"></i></button>
+        </div>
+      </div>
+
+      <div class="slots-to-schedule" id="slots-to-schedule" style="display:none;">
+        <div class="slots-to-schedule-title" id="slots-to-schedule-title"></div>
+        <div class="slots-to-schedule-list" id="slots-to-schedule-list"></div>
+      </div>
+
+      <div class="cta-section">
+        <button class="btn-outline" id="add-lessons-btn">Add extra lessons</button>
+        <button class="btn-primary btn-disabled" id="cta-btn">Schedule lessons</button>
+        <div class="cta-note">Cancel or reschedule for free up to 12 hrs before the lesson starts.</div>
+      </div>
+
+    </div><!-- /sidebar -->
+
+    <div class="my-lessons-accordion" id="my-lessons-accordion">
+      <button class="my-lessons-toggle-btn" id="toggle-my-lessons">
+        Your upcoming lessons
+        <span class="my-lessons-toggle-chevron">
+          <i data-lucide="chevron-down" width="16" height="16" stroke-width="2.5"></i>
+        </span>
+      </button>
+      <div class="my-lessons-accordion-body" id="lessons-panel-body"></div>
+    </div>
+
+    </div><!-- /sidebar-col -->
+
+  </div><!-- /main-layout -->
+</div><!-- /content-wrapper -->
+
+<!-- Duration change modal -->
+<div class="modal-overlay" id="duration-modal">
+  <div class="modal-card">
+    <div class="modal-title">Change the lesson duration?</div>
+    <div class="modal-body">Selecting a different lesson duration will reset your current selection.</div>
+    <div class="modal-actions">
+      <button class="btn-secondary" id="duration-modal-cancel">Cancel</button>
+      <button class="btn-confirm" id="duration-modal-confirm">Yes, continue</button>
+    </div>
+  </div>
+</div>
+
+<!-- Tab switch modal -->
+<div class="modal-overlay" id="switch-modal">
+  <div class="modal-card">
+    <div class="modal-title">Change the lesson type?</div>
+    <div class="modal-body">Selecting a different lesson type will reset your current lesson selection.</div>
+    <div class="modal-actions">
+      <button class="btn-secondary" id="modal-cancel">Cancel</button>
+      <button class="btn-confirm" id="modal-confirm">Yes, continue</button>
+    </div>
+  </div>
+</div>
+
+<!-- Floating tooltip -->
+<div id="tooltip">
+  <div class="tooltip-box">
+    <div class="tooltip-header">
+      <img class="tooltip-avatar" src="https://randomuser.me/api/portraits/men/32.jpg" alt="Jonathan" />
+      <div id="tooltip-text"></div>
+    </div>
+    <div class="tooltip-actions">
+      <button class="tooltip-action-btn" id="action-reschedule">Reschedule</button>
+      <button class="tooltip-action-btn tooltip-action-cancel" id="action-cancel">Cancel lesson</button>
+    </div>
+  </div>
+</div>
+
+<!-- Cancel lesson modal -->
+<div class="modal-overlay" id="cancel-modal">
+  <div class="modal-card">
+    <div class="tutor-avatar">
+      <img src="https://randomuser.me/api/portraits/men/32.jpg" alt="Jonathan" />
+    </div>
+    <div class="modal-title">Cancel this lesson?</div>
+    <div class="modal-body" id="cancel-datetime"></div>
+    <label class="cancel-form-label">Select a reason</label>
+    <select id="cancel-reason">
+      <option value="" disabled selected>Choose a reason</option>
+      <option>I have a scheduling conflict</option>
+      <option>I'm not feeling well</option>
+      <option>I need to reschedule for another time</option>
+      <option>Personal reasons</option>
+      <option>Other</option>
+    </select>
+    <label class="cancel-form-label">Send Jonathan a message (optional)</label>
+    <textarea id="cancel-message" placeholder="Let Jonathan know why you're canceling"></textarea>
+    <div class="modal-actions">
+      <button class="btn-cancel-lesson" id="cancel-modal-confirm">Cancel lesson</button>
+    </div>
+  </div>
+</div>
+
+<script src="../availability.js"></script>
+<script>
+  function addMinutes(time, mins) {
+    var parts = time.split(':');
+    var total = parseInt(parts[0]) * 60 + parseInt(parts[1]) + mins;
+    return String(Math.floor(total / 60)).padStart(2, '0') + ':' + String(total % 60).padStart(2, '0');
+  }
+
+  var TIMES     = ['11:00','11:30','12:00','12:30','14:00','14:30','15:00','15:30','16:00','16:30','19:00'];
+  var DAY_NAMES = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
+  var MONTHS    = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  var RECURRING = { col: 2, time: '14:00', state: 'booked' }; // Wednesday
+  var weekSlots = buildWeekSlots(RECURRING);
+
+  // ── Experiment state ────────────────────────────────────────────────
+  var totalLessons = 0;
+  var scheduledLessons = [];
+
+  // ── State ──────────────────────────────────────────────────────────
+  var currentTab = 'weekly';
+  var currentWeekOffset = 0;
+  var weeklySelections = [];
+  var singleSelections = [];
+  var conflictSlots = [];
+  // Default new-booking duration to the plan's lesson length (8-plan = 25 min).
+  var _planForDuration = (window.AppState && AppState.getPlan) ? AppState.getPlan() : 4;
+  var selectedDuration = (MOCK_SCHEDULED[_planForDuration] && MOCK_SCHEDULED[_planForDuration][0] && MOCK_SCHEDULED[_planForDuration][0].mins) || 50;
+
+  var FULL_DURATIONS = [
+    {value:25,  label:'25 minutes'},
+    {value:50,  label:'50 minutes'},
+    {value:80,  label:'1 hour, 20 minutes'},
+    {value:110, label:'1 hour, 50 minutes'},
+    {value:140, label:'2 hours, 20 minutes'},
+    {value:170, label:'2 hours, 50 minutes'},
+    {value:200, label:'3 hours, 20 minutes'}
+  ];
+  var DURATION_OPTS = { weekly: FULL_DURATIONS, single: FULL_DURATIONS };
+
+  // Each duration consumes balance in 0.5-lesson increments. The durations
+  // aren't even multiples of 50, so map them explicitly: 25m=0.5, 50m=1,
+  // 1h20=1.5, 1h50=2, 2h20=2.5, 2h50=3, 3h20=3.5.
+  var LESSON_UNITS = { 25: 0.5, 50: 1, 80: 1.5, 110: 2, 140: 2.5, 170: 3, 200: 3.5 };
+  function lessonUnits(v) { return (v in LESSON_UNITS) ? LESSON_UNITS[v] : Math.round(v / 50 * 2) / 2; }
+
+  // Cost (in lessons) of ONE lesson at duration v in the current tab.
+  // A weekly books WEEKS_PER_CYCLE occurrences, so it costs units × that.
+  function costAtDuration(v) {
+    var units = lessonUnits(v);
+    return currentTab === 'weekly' ? units * WEEKS_PER_CYCLE : units;
+  }
+  // Why a prospective extra cost can't be afforded: 'plan' | 'balance' | null.
+  // Weekly: if booked + this lesson would exceed the PLAN SIZE, it's a plan
+  // limit (the binding constraint for recurring lessons). Single lessons only
+  // consider the balance.
+  function blockReason(addCost) {
+    var after = progressFilled + addCost;
+    if (currentTab === 'weekly' && after > PLAN_SIZE + 1e-9) return 'plan';
+    if (after > PROGRESS_TOTAL + 1e-9) return 'balance';
+    return null;
+  }
+  window.isDurationLocked = function (v) { return !!blockReason(costAtDuration(v)); };
+  window.durationBlockReason = function (v) { return blockReason(costAtDuration(v)); };
+  // Balance cost a given duration consumes — used by the picker's descriptions.
+  window.durationCost = function (v) { return costAtDuration(v); };
+  // Context for the "plan size limit" upsell copy. Reflects the ACTUAL current
+  // weekly bookings — pre-existing lessons plus in-session selections — grouped
+  // by length, so the body copy is dynamic across every permutation.
+  window.getPlanContext = function () {
+    var byLen = {};
+    // Existing weekly configs (distinct weekday+time), grouped by their ACTUAL
+    // duration — not a hardcoded 50.
+    var seen = {};
+    scheduledLessons.forEach(function (l) {
+      if (l.type !== 'weekly') return;
+      var key = l.day.split(',')[0] + '|' + l.time;
+      if (seen[key]) return; seen[key] = true;
+      var m = l.mins || 50;
+      byLen[m] = (byLen[m] || 0) + 1;
+    });
+    // NB: in-session selections (weeklySelections) are NOT counted — they're
+    // being scheduled, not booked yet. The balance bar still reflects them.
+    var groups = Object.keys(byLen)
+      .map(function (k) { return { lengthMins: parseInt(k, 10), count: byLen[k] }; })
+      .sort(function (a, b) { return a.lengthMins - b.lengthMins; });
+    return {
+      lessonsPerWeek: PLAN_SIZE / WEEKS_PER_CYCLE,
+      planSize: PLAN_SIZE,
+      groups: groups,
+      weeklyBooked: groups.reduce(function (n, g) { return n + g.count; }, 0)
+    };
+  };
+
+  // Lessons the learner can cancel to free balance (for the "Free up balance"
+  // list). Reflects the ACTUAL current weekly commitments: in-session
+  // selections first (with their real times/length), then any pre-existing
+  // weekly config; pre-existing occurrences populate "Upcoming".
+  window.getFreeUpLessons = function () {
+    var weekly = [];
+    weeklySelections.forEach(function (s, i) {
+      weekly.push({
+        label: 'Every ' + s.day + ' · ' + s.time + ' – ' + addMinutes(s.time, selectedDuration),
+        mins: selectedDuration, type: 'weekly',
+        frees: lessonUnits(selectedDuration) * WEEKS_PER_CYCLE,
+        kind: 'selection', ref: i
+      });
+    });
+    var seen = {};
+    scheduledLessons.forEach(function (l) {
+      if (l.type !== 'weekly') return;
+      var wd = l.day.split(',')[0], key = wd + ' ' + l.time;
+      if (seen[key]) return;
+      seen[key] = true;
+      weekly.push({
+        label: 'Every ' + wd + ' · ' + l.time + ' – ' + addMinutes(l.time, l.mins || 50),
+        mins: l.mins || 50, type: 'weekly', frees: lessonUnits(l.mins || 50) * WEEKS_PER_CYCLE,
+        kind: 'existing', dayFull: DAY_ABBR_TO_FULL[wd], cfgTime: l.time
+      });
+    });
+    var upcoming = scheduledLessons.map(function (l) {
+      return { label: l.day + ' · ' + l.time + ' – ' + addMinutes(l.time, l.mins || 50), mins: l.mins || 50, type: 'weekly' };
+    });
+    return { upcoming: upcoming, weekly: weekly };
+  };
+
+  // Remove an in-session weekly selection, returning its balance.
+  function removeWeeklySelectionAt(i) {
+    var s = weeklySelections[i];
+    if (!s) return;
+    if (s.slot) { s.slot.classList.remove('slot-selected'); s.slot.classList.add('slot-available'); }
+    weeklySelections.splice(i, 1);
+    clearConflicts();
+    weeklySelections.forEach(function (w) { applyConflicts(w.slot); });
+    setProgress(progressFilled - lessonCost());
+    updateSidebar();
+  }
+
+  // "Cancel" on a Free-up-balance row → open the cancel form, then remove the
+  // lesson + update the balance on confirm. Back returns to the list.
+  window.onFreeUpRowCancel = function (section, index) {
+    var data = window.getFreeUpLessons();
+    var item = (data[section] || [])[index];
+    if (!item) return;
+    if (window.DurationStepper) DurationStepper.closeFreeupList();
+    var reopen = function () { if (window.DurationStepper) DurationStepper.openFreeupList(); };
+
+    if (section === 'weekly' && item.kind === 'selection') {
+      LessonFlows.cancelForm({ scope: 'all', weeklyText: item.label, weeklyCount: 1, onBack: reopen,
+        onAll: function () { removeWeeklySelectionAt(item.ref); } });
+      return;
+    }
+    if (section === 'weekly') {
+      var cnt = scheduledLessons.filter(function (l) { return DAY_ABBR_TO_FULL[l.day.split(',')[0]] === item.dayFull && l.time === item.cfgTime; }).length;
+      LessonFlows.cancelForm({ scope: 'all', weeklyText: item.label, weeklyCount: cnt || scheduledLessons.length,
+        onBack: reopen, onAll: function () { cancelWeeklyConfig(item.dayFull, item.cfgTime); } });
+      return;
+    }
+    var lesson = scheduledLessons[index];
+    if (!lesson) { reopen(); return; }
+    var c2 = lfCtx(lesson);
+    c2.scope = 'single'; c2.onBack = reopen;
+    c2.onSingle = function () { lfRemoveLesson(lesson); setProgress(progressFilled - lessonUnits(lesson.mins || 50)); };
+    LessonFlows.cancelForm(c2);
+  };
+
+  function getRequiredCount() {
+    if (totalLessons > 0) {
+      if (currentTab === 'weekly') return 1;
+      return totalLessons - scheduledLessons.length;
+    }
+    if (currentTab === 'weekly') return selectedDuration === 25 ? 2 : 1;
+    return {25:8, 50:4, 80:2, 110:2, 140:1, 170:1, 200:1}[selectedDuration] || 4;
+  }
+
+  function getWeeklyInstances(dayName, time, count) {
+    var dayIdx = DAY_NAMES.indexOf(dayName);
+    var today = getMondayOfCurrentWeek(); // Fixed: Monday 16 March 2026
+    var todayIdx = today.getDay() === 0 ? 6 : today.getDay() - 1;
+    var daysUntil = (dayIdx - todayIdx + 7) % 7 || 7;
+    var first = new Date(today);
+    first.setDate(today.getDate() + daysUntil);
+    var out = [];
+    for (var i = 0; i < count; i++) {
+      var d = new Date(first);
+      d.setDate(first.getDate() + i * 7);
+      out.push({
+        day: DAY_NAMES[dayIdx].slice(0, 3) + ', ' + d.getDate() + ' ' + MONTHS[d.getMonth()],
+        time: time, type: 'weekly'
+      });
+    }
+    return out;
+  }
+
+  function getConflictRows() {
+    return Math.floor((selectedDuration - 1) / 30);
+  }
+
+  var titleEl       = document.getElementById('slots-title');
+  var listEl        = document.getElementById('slots-list');
+  var ctaBtn        = document.getElementById('cta-btn');
+  var tooltip       = document.getElementById('tooltip');
+  var tooltipTxt    = document.getElementById('tooltip-text');
+  var durationModal = document.getElementById('duration-modal');
+  var pendingDuration = null;
+  var tooltipHideTimer = null;
+  var tooltipActiveSlot = null;
+
+  // Keep tooltip alive when mouse moves from slot into tooltip
+  tooltip.addEventListener('mouseenter', function() { clearTimeout(tooltipHideTimer); });
+  tooltip.addEventListener('mouseleave', function() {
+    tooltip.classList.remove('visible');
+    tooltipActiveSlot = null;
+  });
+
+  var _durationSizer = (function() {
+    var s = document.createElement('span');
+    s.style.cssText = "visibility:hidden;position:absolute;top:-9999px;white-space:nowrap;font-family:'Figtree',system-ui,sans-serif;font-size:16px;font-weight:600;";
+    document.body.appendChild(s);
+    return s;
+  })();
+
+  function resizeDurationSelect() {
+    var sel = document.getElementById('duration-select');
+    _durationSizer.textContent = sel.options[sel.selectedIndex].text;
+    sel.style.width = _durationSizer.offsetWidth + 'px';
+  }
+
+  function applyDurationChange(val) {
+    // Roll back balance added by selections that are about to be cleared.
+    var oldUnits = lessonUnits(selectedDuration);
+    var removed = weeklySelections.length * oldUnits * WEEKS_PER_CYCLE + singleSelections.length * oldUnits;
+    if (removed > 0) setProgress(progressFilled - removed);
+    selectedDuration = val;
+    weeklySelections.forEach(function(s) {
+      s.slot.classList.remove('slot-selected');
+      s.slot.classList.add('slot-available');
+    });
+    weeklySelections = [];
+    clearConflicts();
+    singleSelections = [];
+    if (currentTab === 'single') renderSingleGrid();
+    updateSidebar();
+    resizeDurationSelect();
+  }
+
+  // Default the duration to the largest the learner can currently afford: 50 if
+  // it fits the free balance, else 25, else 50. Only when nothing is selected
+  // (so it never overrides a mid-flow choice). Re-runs on load, tab switch, and
+  // after freeing balance.
+  function applyDefaultDuration() {
+    if (hasSelections()) return;
+    var d = (blockReason(costAtDuration(50)) === null) ? 50
+          : (blockReason(costAtDuration(25)) === null) ? 25 : 50;
+    // Always sync the <select> + stepper to the resolved default (the select
+    // markup defaults to 50, so it can be stale even when selectedDuration matches).
+    var selEl = document.getElementById('duration-select');
+    if (selEl) selEl.value = String(d);
+    if (d !== selectedDuration) { applyDurationChange(d); } else { updateSidebar(); }
+    if (window.DurationStepper && DurationStepper.sync) DurationStepper.sync();
+  }
+
+  document.getElementById('duration-select').addEventListener('change', function() {
+    var val = parseInt(this.value);
+    if (hasSelections()) {
+      pendingDuration = val;
+      this.value = selectedDuration;
+      durationModal.classList.add('visible');
+    } else {
+      applyDurationChange(val);
+    }
+  });
+
+  document.getElementById('duration-modal-cancel').addEventListener('click', function() {
+    durationModal.classList.remove('visible');
+    pendingDuration = null;
+  });
+
+  document.getElementById('duration-modal-confirm').addEventListener('click', function() {
+    durationModal.classList.remove('visible');
+    if (pendingDuration !== null) {
+      document.getElementById('duration-select').value = pendingDuration;
+      applyDurationChange(pendingDuration);
+      pendingDuration = null;
+      if (window.DurationStepper) DurationStepper.sync();
+    }
+  });
+
+  durationModal.addEventListener('click', function(e) {
+    if (e.target === durationModal) {
+      durationModal.classList.remove('visible');
+      pendingDuration = null;
+    }
+  });
+
+  resizeDurationSelect();
+
+  // ── Conflicts ──────────────────────────────────────────────────────
+  function clearConflicts() {
+    conflictSlots.forEach(function(s) {
+      s.classList.remove('slot-conflict');
+      s.classList.add('slot-available');
+    });
+    conflictSlots = [];
+  }
+
+  function applyConflicts(slot) {
+    var count = getConflictRows();
+    if (count === 0) return;
+    var row = slot.parentElement;
+    var colIdx = Array.from(row.children).indexOf(slot);
+    function blockDirection(startRow, dir) {
+      var r = startRow;
+      for (var i = 0; i < count; i++) {
+        r = dir > 0 ? r.nextElementSibling : r.previousElementSibling;
+        if (!r || !r.classList.contains('slots-row')) break;
+        var neighbor = r.children[colIdx];
+        if (neighbor && neighbor.classList.contains('slot-available')) {
+          neighbor.classList.remove('slot-available');
+          neighbor.classList.add('slot-conflict');
+          conflictSlots.push(neighbor);
+        }
+      }
+    }
+    blockDirection(row, 1);
+    blockDirection(row, -1);
+  }
+
+  // ── Tooltip ────────────────────────────────────────────────────────
+  function showTooltip(slot) {
+    var cancelBtn = document.getElementById('action-cancel');
+    if (cancelBtn) cancelBtn.textContent = currentTab === 'weekly' ? 'Cancel lessons' : 'Cancel lesson';
+    var rect = slot.getBoundingClientRect();
+    tooltip.style.left = rect.left + 'px';
+    tooltip.style.top = '0px';
+    tooltip.classList.add('visible');
+    requestAnimationFrame(function() {
+      tooltip.style.top = (rect.top - tooltip.offsetHeight - 6) + 'px';
+    });
+  }
+
+  function attachTooltip(slot) {
+    slot.addEventListener('mouseenter', function() {
+      clearTimeout(tooltipHideTimer);
+      tooltipActiveSlot = slot;
+      var lines = (slot.dataset.tooltip || '').split('\n');
+      tooltipTxt.innerHTML = '<span class="tooltip-title">' + (lines[0] || '') + '</span>'
+        + (lines[1] ? '<br><span class="tooltip-subtitle">' + lines[1] + '</span>' : '');
+      showTooltip(slot);
+    });
+    slot.addEventListener('mouseleave', function() {
+      tooltipHideTimer = setTimeout(function() {
+        tooltip.classList.remove('visible');
+        tooltipActiveSlot = null;
+      }, 100);
+    });
+  }
+
+  // ── Chip factories ─────────────────────────────────────────────────
+
+  function makeLessonCard(lesson, reserved, showRepeat) {
+    var endTime = addMinutes(lesson.time, lesson.mins || 50);
+    var label = lesson.day + ' \u00b7 ' + lesson.time + ' \u2013 ' + endTime;
+    var repeatIcon = showRepeat
+      ? '<span class="lesson-chip-repeat"><i data-lucide="repeat-2" width="20" height="20" stroke-width="2"></i></span>'
+      : '';
+    var el = document.createElement('div');
+    el.className = 'lesson-chip ' + (reserved ? 'lesson-chip--reserved' : 'lesson-chip--scheduled') + ' visible';
+    el.innerHTML =
+      repeatIcon + '<span class="lesson-chip-text">' + label + '</span>' +
+      '<button class="lesson-chip-dots" aria-label="Options">' +
+        '<i data-lucide="more-horizontal" width="20" height="20" stroke-width="2"></i>' +
+      '</button>' +
+      '<div class="lesson-chip-menu hidden">' +
+        (!reserved ? '<button class="menu-item menu-item--reschedule"><i data-lucide="calendar-sync" width="20" height="20" stroke-width="1.8"></i>Reschedule lesson</button>' : '') +
+        '<button class="menu-item"><i data-lucide="message-square" width="20" height="20" stroke-width="1.8"></i>Message tutor</button>' +
+        '<button class="menu-item"><i data-lucide="user" width="20" height="20" stroke-width="1.8"></i>See tutor profile</button>' +
+        '<button class="menu-item menu-item--cancel"><i data-lucide="ban" width="20" height="20" stroke-width="1.8"></i>Cancel lesson</button>' +
+      '</div>';
+
+    var dotsBtn = el.querySelector('.lesson-chip-dots');
+    var menu = el.querySelector('.lesson-chip-menu');
+    dotsBtn.addEventListener('click', function(e) {
+      e.stopPropagation();
+      var isOpen = !menu.classList.contains('hidden');
+      closeAllMenus();
+      if (!isOpen) {
+        var rect = dotsBtn.getBoundingClientRect();
+        menu.style.top    = 'auto';
+        menu.style.bottom = (window.innerHeight - rect.top + 6) + 'px';
+        menu.style.right  = (window.innerWidth - rect.right) + 'px';
+        menu.classList.remove('hidden');
+      }
+    });
+    var rescheduleBtn = el.querySelector('.menu-item--reschedule');
+    if (rescheduleBtn) {
+      rescheduleBtn.addEventListener('click', function() {
+        closeAllMenus();
+        lfStartReschedule(lesson);
+      });
+    }
+    el.querySelector('.menu-item--cancel').addEventListener('click', function() {
+      closeAllMenus();
+      lfStartCancel(lesson);
+    });
+    return el;
+  }
+
+  function makeSlotRow(selection, placeholder, selIdx) {
+    if (!selection) {
+      var el = document.createElement('div');
+      el.className = 'lesson-slot-empty';
+      el.innerHTML = '<span>' + placeholder + '</span>';
+      return el;
+    }
+    var chipText = currentTab === 'weekly'
+      ? 'Every ' + selection.day + ' \u00b7 ' + selection.time + ' \u2013 ' + addMinutes(selection.time, selectedDuration)
+      : selection.day + ' \u00b7 ' + selection.time + ' \u2013 ' + addMinutes(selection.time, selectedDuration);
+    var el = document.createElement('div');
+    el.className = 'lesson-chip visible';
+    el.innerHTML =
+      '<span class="lesson-chip-text">' + chipText + '</span>' +
+      '<button class="lesson-chip-remove" aria-label="Remove">' +
+      '<i data-lucide="x" width="20" height="20" stroke-width="2"></i>' +
+      '</button>';
+    el.querySelector('.lesson-chip-remove').addEventListener('click', function() {
+      if (currentTab === 'weekly') {
+        var s = weeklySelections[selIdx];
+        if (s) {
+          s.slot.classList.remove('slot-selected');
+          s.slot.classList.add('slot-available');
+          weeklySelections.splice(selIdx, 1);
+          clearConflicts();
+          weeklySelections.forEach(function(ws) { applyConflicts(ws.slot); });
+          setProgress(progressFilled - lessonCost()); // return the balance it held
+        }
+        updateSidebar();
+      } else {
+        var removed = singleSelections.splice(selIdx, 1)[0];
+        if (removed) {
+          setProgress(progressFilled - lessonCost());
+          if (removed.weekOffset === currentWeekOffset) renderSingleGrid();
+        }
+        updateSidebar();
+      }
+    });
+    return el;
+  }
+
+  // How many lessons of the selected duration the free balance allows.
+  function maxBookableLessons() {
+    var free = PROGRESS_TOTAL - sumLessonUnits(scheduledLessons);
+    var cost = costAtDuration(selectedDuration);
+    return cost > 0 ? Math.floor((free + 1e-9) / cost) : 0;
+  }
+  // "N lessons to schedule" + a box per bookable lesson — selections fill the
+  // first boxes (date/time/duration + remove), the rest are empty placeholders.
+  function renderSlotsToSchedule() {
+    var wrap = document.getElementById('slots-to-schedule');
+    var list = document.getElementById('slots-to-schedule-list');
+    var titleEl = document.getElementById('slots-to-schedule-title');
+    var statusEl = document.querySelector('.sidebar-progress-status');
+    if (!wrap || !list) return;
+    var sels = currentTab === 'weekly' ? weeklySelections : singleSelections;
+    var total = Math.max(maxBookableLessons(), sels.length);
+    if (total <= 0) {
+      // Nothing bookable (plan full, or balance can't cover the current duration):
+      // let the Progress Plan status line carry the message instead.
+      wrap.style.display = 'none';
+      list.innerHTML = '';
+      if (statusEl) statusEl.style.display = '';
+      return;
+    }
+    // The placeholder header is now the single source of truth, so the
+    // "X of N scheduled" line would just duplicate it — hide it.
+    if (statusEl) statusEl.style.display = 'none';
+    wrap.style.display = '';
+    list.innerHTML = '';
+    for (var i = 0; i < total; i++) {
+      var label = (currentTab === 'weekly' ? 'Weekly lesson ' : 'Lesson ') + (i + 1);
+      list.appendChild(makeSlotRow(sels[i] || null, label, i));
+    }
+    var remaining = Math.max(0, total - sels.length);
+    var noun = currentTab === 'weekly' ? 'weekly lesson' : 'lesson';
+    titleEl.textContent = remaining > 0
+      ? remaining + ' ' + noun + (remaining === 1 ? '' : 's') + ' to schedule'
+      : 'Ready to schedule';
+    lucide.createIcons();
+  }
+
+  // ── Sidebar ────────────────────────────────────────────────────────
+  function updateSidebar() {
+    if (totalLessons === 0) return;
+    if (currentTab === 'weekly') {
+      ctaBtn.textContent = 'Schedule weekly lesson' + (weeklySelections.length > 1 ? 's' : '');
+      ctaBtn.className = 'btn-primary ' + (weeklySelections.length >= 1 ? 'btn-active' : 'btn-disabled');
+    } else {
+      ctaBtn.textContent = 'Schedule';
+      ctaBtn.className = 'btn-primary ' + (singleSelections.length >= 1 ? 'btn-active' : 'btn-disabled');
+    }
+    renderSlotsToSchedule();
+    lucide.createIcons();
+    renderLessonsPanel();
+  }
+
+  // ── Progress Plan bar ──────────────────────────────────────────────
+  var PLAN = (window.AppState && AppState.getPlan) ? AppState.getPlan() : 4;
+  var PROGRESS_TOTAL = PLAN;  // total consumable balance (the progress bar)
+  var PLAN_SIZE = PLAN;       // weekly recurring capacity (lessons per cycle)
+  var WEEKS_PER_CYCLE = 4;    // occurrences a weekly lesson books per cycle
+  var progressFilled = PROGRESS_TOTAL;
+  // Render the balance bar with one segment per plan lesson (4 or 8).
+  (function () {
+    var bar = document.querySelector('.sidebar-progress-bar');
+    if (!bar) return;
+    bar.innerHTML = '';
+    for (var i = 0; i < PROGRESS_TOTAL; i++) {
+      var seg = document.createElement('div');
+      seg.className = 'sidebar-progress-seg filled';
+      bar.appendChild(seg);
+    }
+  })();
+  function setProgress(n) {
+    // Snap to half-units (50 min = 1 unit, 25 min = 0.5 unit).
+    progressFilled = Math.max(0, Math.min(PROGRESS_TOTAL, Math.round(n * 2) / 2));
+    // Two-tone: solid green = already-booked balance; light green = balance held
+    // by this session's pending selections (selected but not yet scheduled).
+    var booked = Math.max(0, Math.min(progressFilled, Math.round(sumLessonUnits(scheduledLessons) * 2) / 2));
+    document.querySelectorAll('.sidebar-progress-seg').forEach(function (seg, i) {
+      var b = Math.max(0, Math.min(1, booked - i)) * 100;          // booked portion
+      var t = Math.max(0, Math.min(1, progressFilled - i)) * 100;  // total filled portion
+      seg.classList.remove('filled');
+      if (t <= 0) { seg.style.background = 'transparent'; return; }
+      seg.style.background = 'linear-gradient(to right, #1d8a73 0, #1d8a73 ' + b + '%, #9BD4C4 ' + b + '%, #9BD4C4 ' + t + '%, transparent ' + t + '%)';
+    });
+    var text = document.querySelector('.sidebar-progress-text');
+    var badge = document.querySelector('.sidebar-progress-badge');
+    if (text) {
+      if (progressFilled >= PROGRESS_TOTAL) {
+        text.textContent = 'All lessons scheduled';
+        badge.style.display = '';
+      } else {
+        text.textContent = (Math.round(progressFilled * 10) / 10) + ' of ' + PROGRESS_TOTAL + ' lessons scheduled';
+        badge.style.display = 'none';
+      }
+    }
+    // No free balance to schedule against → hide the duration picker (it only
+    // adds complexity when nothing can be booked). It returns once a
+    // cancellation frees balance. "Add lessons" stays available throughout.
+    var durWrap = document.querySelector('.duration-stepper-wrap');
+    if (durWrap) durWrap.style.display = (PROGRESS_TOTAL - booked > 0.0001) ? '' : 'none';
+    // Re-evaluate which durations are affordable now the balance changed.
+    if (window.DurationStepper && DurationStepper.sync) DurationStepper.sync();
+  }
+
+  // Balance a lesson consumes at the selected duration (weekly = units × weeks).
+  function lessonCost() { return costAtDuration(selectedDuration); }
+
+  // Can the learner select a NEW timeslot? Only if plan + balance allow it;
+  // otherwise → the balance/plan modal (routed by the blocking reason).
+  function canScheduleNew() {
+    return blockReason(lessonCost()) === null;
+  }
+  function openBalanceModal() {
+    var reason = blockReason(lessonCost());
+    if (window.DurationStepper && DurationStepper.openBalance) DurationStepper.openBalance(reason);
+  }
+
+  // Revert a booked (static, weekly-view) slot back to a regular selectable slot.
+  function revertSlot(slot) {
+    if (!slot || !slot.parentNode) return;
+    var fresh = document.createElement('div');
+    fresh.className = 'slot slot-available';
+    fresh.dataset.day = slot.dataset.day || '';
+    fresh.dataset.time = slot.dataset.time || '';
+    fresh.textContent = slot.dataset.time || '';
+    fresh.addEventListener('click', handleWeeklySlotClick);
+    slot.parentNode.replaceChild(fresh, slot);
+  }
+  function revertAllWeeklyBooked() {
+    document.querySelectorAll('#weekly-view .slot-booked').forEach(revertSlot);
+  }
+
+  // Cancel a single weekly config (weekday + time). Removes that config's
+  // occurrences, reverts its booked slot, and returns its balance (the sum of
+  // its occurrences' units). With one config (4-plan) this cancels everything.
+  function cancelWeeklyConfig(weekdayFull, time) {
+    if (!weekdayFull) { lfRemoveAll(); setProgress(0); revertAllWeeklyBooked(); return; }
+    var abbr = weekdayFull.slice(0, 3);
+    function isConfig(l) { return l.day.split(',')[0] === abbr && (!time || l.time === time); }
+    var match = scheduledLessons.filter(isConfig);
+    if (!match.length) return;
+    var cost = match.reduce(function (s, l) { return s + lessonUnits(l.mins || 50); }, 0);
+    scheduledLessons = scheduledLessons.filter(function (l) { return !isConfig(l); });
+    var sel = '#weekly-view .slot-booked[data-day="' + weekdayFull + '"]' + (time ? '[data-time="' + time + '"]' : '');
+    document.querySelectorAll(sel).forEach(revertSlot);
+    setProgress(progressFilled - cost);
+    lfRerender();
+  }
+
+  // ── Lessons accordion ─────────────────────────────────────────────
+  var lessonsPanelBody = document.getElementById('lessons-panel-body');
+
+  function renderLessonsPanel() {
+    lessonsPanelBody.innerHTML = '';
+
+    var upcomingCards = document.createElement('div');
+    upcomingCards.className = 'lesson-cards';
+
+    scheduledLessons.forEach(function(lesson) {
+      upcomingCards.appendChild(makeLessonCard(lesson, false, lesson.type === 'weekly'));
+    });
+
+    lessonsPanelBody.appendChild(upcomingCards);
+    lucide.createIcons();
+  }
+
+  var accordion = document.getElementById('my-lessons-accordion');
+
+  function openLessonsPanel() {
+    accordion.classList.add('open');
+  }
+
+  function closeLessonsPanel() {
+    accordion.classList.remove('open');
+  }
+
+  document.getElementById('toggle-my-lessons').addEventListener('click', function() {
+    accordion.classList.contains('open') ? closeLessonsPanel() : openLessonsPanel();
+  });
+
+  // ── 3-dots menu: close all open menus ─────────────────────────────
+  function closeAllMenus() {
+    document.querySelectorAll('.lesson-chip-menu').forEach(function(m) {
+      m.classList.add('hidden');
+    });
+  }
+
+  document.addEventListener('click', closeAllMenus);
+
+  // ── Weekly slot handlers ───────────────────────────────────────────
+  function handleWeeklySlotClick() {
+    var slot = this;
+    var existingIdx = -1;
+    for (var i = 0; i < weeklySelections.length; i++) {
+      if (weeklySelections[i].slot === slot) { existingIdx = i; break; }
+    }
+    if (existingIdx >= 0) {
+      slot.classList.remove('slot-selected');
+      slot.classList.add('slot-available');
+      weeklySelections.splice(existingIdx, 1);
+      clearConflicts();
+      weeklySelections.forEach(function(s) { applyConflicts(s.slot); });
+      setProgress(progressFilled - lessonCost());
+    } else {
+      if (!canScheduleNew()) { openBalanceModal(); return; }
+      // No count cap — schedule as many weekly lessons as the balance allows.
+      slot.classList.remove('slot-available');
+      slot.classList.add('slot-selected');
+      weeklySelections.push({ slot: slot, day: slot.dataset.day, time: slot.dataset.time });
+      applyConflicts(slot);
+      setProgress(progressFilled + lessonCost());
+    }
+    updateSidebar();
+  }
+
+  document.querySelectorAll('#weekly-view .slot-available').forEach(function(slot) {
+    slot.addEventListener('click', handleWeeklySlotClick);
+  });
+  document.querySelectorAll('#weekly-view .slot-booked').forEach(attachTooltip);
+
+  // ── Single tab — week grid ─────────────────────────────────────────
+  function getMondayOfCurrentWeek() {
+    var d = new Date(2026, 2, 16); d.setHours(0, 0, 0, 0); // Fixed: Monday 16 March 2026
+    return d;
+  }
+
+  function findSingleSel(weekOffset, col, time) {
+    for (var i = 0; i < singleSelections.length; i++) {
+      var s = singleSelections[i];
+      if (s.weekOffset === weekOffset && s.col === col && s.time === time) return i;
+    }
+    return -1;
+  }
+
+  function getScheduledBookingMap() {
+    var map = {};
+    var monday = getMondayOfCurrentWeek();
+    scheduledLessons.forEach(function(lesson) {
+      var parts = lesson.day.split(', ')[1].split(' '); // e.g. ["17", "Mar"]
+      var monthIdx = MONTHS.indexOf(parts[1]);
+      var lessonDate = new Date(monday.getFullYear(), monthIdx, parseInt(parts[0]));
+      lessonDate.setHours(0, 0, 0, 0);
+      var diffDays = Math.round((lessonDate - monday) / 86400000);
+      var weekOffset = Math.floor(diffDays / 7);
+      var col = diffDays % 7;
+      var key = String(weekOffset);
+      if (!map[key]) map[key] = [];
+      map[key].push({ col: col, time: lesson.time, state: 'booked', lesson: lesson });
+    });
+    return map;
+  }
+
+  function renderSingleGrid() {
+    conflictSlots = [];
+    var monday = getMondayOfCurrentWeek();
+    var today  = monday; // Today = Monday 16 March 2026
+
+    var offsetMonday = new Date(monday); offsetMonday.setDate(monday.getDate() + currentWeekOffset * 7);
+    var weekStart = offsetMonday;
+    var weekEnd = new Date(offsetMonday); weekEnd.setDate(offsetMonday.getDate() + 6);
+
+    var sM = MONTHS[weekStart.getMonth()], eM = MONTHS[weekEnd.getMonth()];
+    document.getElementById('week-label').textContent =
+      sM + ' ' + weekStart.getDate() + ' \u2013 ' + (sM !== eM ? eM + ' ' : '') + weekEnd.getDate();
+
+    document.getElementById('prev-week').disabled = (currentWeekOffset === 0);
+    document.getElementById('next-week').disabled = (currentWeekOffset === 4);
+    document.getElementById('today-btn').disabled = (currentWeekOffset === 0);
+
+    var headerMonday = weekStart;
+
+    var daysRow = document.getElementById('single-days-row');
+    daysRow.innerHTML = '';
+    for (var i = 0; i < 7; i++) {
+      var d = new Date(headerMonday); d.setDate(headerMonday.getDate() + i);
+      var isToday = d.getTime() === today.getTime();
+      var cell = document.createElement('div');
+      cell.className = 'day-label' + (isToday ? ' today' : '');
+      var rawI = d.getDay() === 0 ? 6 : d.getDay() - 1;
+      cell.innerHTML = '<span class="day-name">' + DAY_NAMES[rawI].slice(0, 3) + '</span><span class="day-date">' + d.getDate() + '</span>';
+      daysRow.appendChild(cell);
+    }
+
+    var base = weekSlots[String(currentWeekOffset)] || [RECURRING];
+    var bookMap = getScheduledBookingMap();
+    var bookedEntries = bookMap[String(currentWeekOffset)] || [];
+    var entries = (totalLessons > 0
+      ? base.filter(function(e) { return e !== RECURRING; })
+      : base
+    ).concat(bookedEntries);
+    var slotMap = {};
+    entries.forEach(function(s) { slotMap[s.col + ':' + s.time] = s; });
+
+    var grid = document.getElementById('single-slots-grid');
+    grid.innerHTML = '';
+    TIMES.forEach(function(time) {
+      var row = document.createElement('div');
+      row.className = 'slots-row';
+      for (var col = 0; col < 7; col++) {
+        var entry = slotMap[col + ':' + time];
+        var cell  = document.createElement('div');
+
+        if (entry && entry.state === 'booked') {
+          cell.className = 'slot slot-booked';
+          cell.innerHTML = '<img class="slot-avatar" src="https://randomuser.me/api/portraits/men/32.jpg" alt="Jonathan" />';
+          var dBooked = new Date(headerMonday); dBooked.setDate(headerMonday.getDate() + col);
+          var bookedRawI = dBooked.getDay() === 0 ? 6 : dBooked.getDay() - 1;
+          var bookedDateLabel = DAY_NAMES[bookedRawI].slice(0, 3) + ', ' + dBooked.getDate() + ' ' + MONTHS[dBooked.getMonth()];
+          var bookedMins = (entry.lesson && entry.lesson.mins) || 50;
+          cell.dataset.tooltip = 'Lesson with Jonathan G.\n' + bookedDateLabel + ' \u00b7 ' + time + ' \u2013 ' + addMinutes(time, bookedMins);
+          cell._lesson = entry.lesson;
+          attachTooltip(cell);
+        } else if (!entry) {
+          cell.className = 'slot slot-unavailable';
+        } else {
+          var dCell = new Date(headerMonday); dCell.setDate(headerMonday.getDate() + col);
+          var cellRawI = dCell.getDay() === 0 ? 6 : dCell.getDay() - 1;
+          var dateLabel = DAY_NAMES[cellRawI].slice(0, 3) + ', ' + dCell.getDate() + ' ' + MONTHS[dCell.getMonth()];
+          var selIdx = findSingleSel(currentWeekOffset, col, time);
+          cell.className = 'slot ' + (selIdx >= 0 ? 'slot-selected' : 'slot-available');
+          cell.textContent = time;
+          cell.dataset.day  = dateLabel;
+          cell.dataset.time = time;
+          cell.dataset.col  = col;
+          cell.addEventListener('click', handleSingleSlotClick);
+        }
+        row.appendChild(cell);
+      }
+      grid.appendChild(row);
+    });
+    singleSelections.filter(function(s) {
+      return s.weekOffset === currentWeekOffset;
+    }).forEach(function(s) {
+      grid.querySelectorAll('.slots-row').forEach(function(row) {
+        var cell = row.children[s.col];
+        if (cell && cell.classList.contains('slot-selected')) applyConflicts(cell);
+      });
+    });
+  }
+
+  function handleSingleSlotClick() {
+    var slot = this;
+    var col  = parseInt(slot.dataset.col);
+    var time = slot.dataset.time;
+    var idx  = findSingleSel(currentWeekOffset, col, time);
+    if (idx >= 0) {
+      singleSelections.splice(idx, 1);
+      setProgress(progressFilled - lessonCost());
+    } else {
+      if (!canScheduleNew()) { openBalanceModal(); return; }
+      singleSelections.push({ weekOffset: currentWeekOffset, col: col, time: time, day: slot.dataset.day });
+      setProgress(progressFilled + lessonCost());
+    }
+    renderSingleGrid();
+    updateSidebar();
+  }
+
+  // ── Tab switching ──────────────────────────────────────────────────
+  var switchModal   = document.getElementById('switch-modal');
+  var pendingTabIdx = null;
+
+  function hasSelections() {
+    return weeklySelections.length > 0 || singleSelections.length > 0;
+  }
+
+  function doTabSwitch(idx) {
+    document.querySelectorAll('.tab').forEach(function(t) { t.classList.remove('active'); });
+    document.querySelectorAll('.tab')[idx].classList.add('active');
+    weeklySelections.forEach(function(s) {
+      s.slot.classList.remove('slot-selected');
+      s.slot.classList.add('slot-available');
+    });
+    weeklySelections = [];
+    clearConflicts();
+    singleSelections = [];
+    if (idx === 0) {
+      currentTab = 'weekly';
+      document.getElementById('weekly-view').style.display = '';
+      document.getElementById('single-view').style.display = 'none';
+    } else {
+      currentTab = 'single';
+      currentWeekOffset = 0;
+      document.getElementById('weekly-view').style.display = 'none';
+      document.getElementById('single-view').style.display = '';
+      renderSingleGrid();
+    }
+    var sel = document.getElementById('duration-select');
+    var opts = DURATION_OPTS[currentTab];
+    sel.innerHTML = '';
+    opts.forEach(function(o) {
+      var opt = document.createElement('option');
+      opt.value = o.value;
+      opt.textContent = o.label;
+      if (o.value === selectedDuration) opt.selected = true;
+      sel.appendChild(opt);
+    });
+    if (!opts.some(function(o) { return o.value === selectedDuration; })) {
+      selectedDuration = 50;
+      sel.value = 50;
+    }
+    updateSidebar();
+    applyDefaultDuration(); // re-evaluate the affordable default for the new tab
+  }
+
+  document.querySelectorAll('.tab').forEach(function(tab, idx) {
+    tab.addEventListener('click', function() {
+      if (tab.classList.contains('active')) return;
+      if (hasSelections()) {
+        pendingTabIdx = idx;
+        switchModal.classList.add('visible');
+      } else {
+        doTabSwitch(idx);
+      }
+    });
+  });
+
+  document.getElementById('modal-cancel').addEventListener('click', function() {
+    switchModal.classList.remove('visible');
+    pendingTabIdx = null;
+  });
+
+  document.getElementById('modal-confirm').addEventListener('click', function() {
+    switchModal.classList.remove('visible');
+    if (pendingTabIdx !== null) doTabSwitch(pendingTabIdx);
+    pendingTabIdx = null;
+  });
+
+  switchModal.addEventListener('click', function(e) {
+    if (e.target === switchModal) {
+      switchModal.classList.remove('visible');
+      pendingTabIdx = null;
+    }
+  });
+
+  // ── Week navigation ────────────────────────────────────────────────
+  document.getElementById('prev-week').addEventListener('click', function() {
+    if (currentWeekOffset > 0) {
+      currentWeekOffset--;
+      renderSingleGrid();
+      updateSidebar();
+    }
+  });
+
+  document.getElementById('next-week').addEventListener('click', function() {
+    if (currentWeekOffset < 4) {
+      currentWeekOffset++;
+      renderSingleGrid();
+      updateSidebar();
+    }
+  });
+
+  document.getElementById('today-btn').addEventListener('click', function() {
+    currentWeekOffset = 0;
+    renderSingleGrid();
+    updateSidebar();
+  });
+
+  // ── Weekly view bookings ───────────────────────────────────────────
+  var DAY_ABBR_TO_FULL = {
+    'Mon':'Monday','Tue':'Tuesday','Wed':'Wednesday',
+    'Thu':'Thursday','Fri':'Friday','Sat':'Saturday','Sun':'Sunday'
+  };
+
+  function updateWeeklyViewBookings() {
+    document.querySelectorAll('#weekly-view .slot[data-plan-booked]').forEach(function(el) {
+      el.classList.remove('slot-booked');
+      el.classList.add('slot-available');
+      el.addEventListener('click', handleWeeklySlotClick);
+      delete el.dataset.planBooked;
+      delete el.dataset.tooltip;
+    });
+
+    var hasWeekly = scheduledLessons.some(function(l) { return l.type === 'weekly'; });
+
+    // Keep the hardcoded recurring slot visible so its tooltip remains active
+
+    scheduledLessons.forEach(function(lesson) {
+      if (lesson.type !== 'weekly') return;
+      var dayAbbr = lesson.day.split(', ')[0];
+      var dayFull = DAY_ABBR_TO_FULL[dayAbbr];
+      if (!dayFull) return;
+      var slot = document.querySelector('#weekly-view .slot[data-day="' + dayFull + '"][data-time="' + lesson.time + '"]');
+      if (slot && slot.classList.contains('slot-available')) {
+        slot.classList.remove('slot-available');
+        slot.classList.add('slot-booked');
+        slot.innerHTML = '<img class="slot-avatar" src="https://randomuser.me/api/portraits/men/32.jpg" alt="Jonathan" />';
+        slot.removeEventListener('click', handleWeeklySlotClick);
+        slot.dataset.planBooked = '1';
+        slot.dataset.tooltip = 'Lesson with Jonathan G.\nEvery ' + dayFull
+          + ' \u00b7 ' + lesson.time + ' \u2013 ' + addMinutes(lesson.time, lesson.mins || 50);
+        attachTooltip(slot);
+      }
+    });
+  }
+
+  // ── Plan picker ────────────────────────────────────────────────────
+  document.querySelectorAll('.plan-option-btn').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      totalLessons = parseInt(this.dataset.count);
+      scheduledLessons = MOCK_SCHEDULED[totalLessons].map(function(l) {
+        return Object.assign({}, l);
+      });
+      updateWeeklyViewBookings();
+
+      document.getElementById('plan-picker-overlay').style.display = 'none';
+      document.getElementById('content-wrapper').style.display = '';
+      lucide.createIcons();
+
+      renderLessonsPanel();
+      updateSidebar();
+    });
+  });
+
+  // ── Shared cancel / reschedule flow helpers ───────────────────────
+  function lfFullWeekday(dayStr) {
+    var abbr = (dayStr || '').split(',')[0];
+    var map = { Mon:'Monday', Tue:'Tuesday', Wed:'Wednesday', Thu:'Thursday', Fri:'Friday', Sat:'Saturday', Sun:'Sunday' };
+    return map[abbr] || abbr;
+  }
+  function lfRerender() {
+    if (window.AppState) AppState.setLessons(scheduledLessons); // persist across pages
+    renderLessonsPanel();
+    if (typeof renderSingleGrid === 'function') renderSingleGrid();
+    if (typeof applyDefaultDuration === 'function') applyDefaultDuration(); // freeing balance may change the default
+  }
+  // Balance consumed by the current booked lessons (each occurrence = its units).
+  function sumLessonUnits(arr) {
+    return (arr || []).reduce(function (s, l) { return s + lessonUnits(l.mins || 50); }, 0);
+  }
+  function lfRemoveLesson(lesson) {
+    var i = scheduledLessons.indexOf(lesson);
+    if (i >= 0) scheduledLessons.splice(i, 1);
+    lfRerender();
+  }
+  function lfRemoveAll() { scheduledLessons = []; lfRerender(); }
+  function lfCtx(lesson) {
+    var end = addMinutes(lesson.time, lesson.mins || 50);
+    return {
+      date: lesson.day + ' · ' + lesson.time + ' – ' + end,
+      weeklyText: 'Every ' + lfFullWeekday(lesson.day) + ' · ' + lesson.time + ' – ' + end,
+      weeklyCount: scheduledLessons.length,
+      singleUrl: 'reschedule-vision.html',
+      weeklyUrl: 'reschedule-weekly-vision.html'
+    };
+  }
+  function lfStartReschedule(lesson) { LessonFlows.reschedule(lfCtx(lesson)); }
+  function lfStartCancel(lesson) {
+    var c = lfCtx(lesson);
+    c.onSingle = function() { lfRemoveLesson(lesson); setProgress(progressFilled - lessonUnits(lesson.mins || 50)); };
+    c.onAll = function() { lfRemoveAll(); setProgress(0); revertAllWeeklyBooked(); };
+    LessonFlows.cancel(c);
+  }
+  function lfTooltipDate() {
+    if (tooltipActiveSlot && tooltipActiveSlot.dataset.tooltip) {
+      var lines = tooltipActiveSlot.dataset.tooltip.split('\n');
+      if (lines.length > 1) return lines[1];
+    }
+    return '';
+  }
+
+  // ── Quick-action tooltip handlers ─────────────────────────────────
+  document.getElementById('action-reschedule').addEventListener('click', function(e) {
+    e.stopPropagation();
+    tooltip.classList.remove('visible');
+    var lesson = tooltipActiveSlot && tooltipActiveSlot._lesson;
+    if (lesson) { lfStartReschedule(lesson); return; }
+    // Weekly pop-over: tell reschedule-weekly which config (weekday + time) this is.
+    var slot = tooltipActiveSlot;
+    if (currentTab === 'weekly' && slot && slot.dataset && slot.dataset.day && window.AppState && AppState.setRescheduleTarget) {
+      AppState.setRescheduleTarget(slot.dataset.day, slot.dataset.time);
+    }
+    var d = lfTooltipDate();
+    LessonFlows.reschedule({ date: d, weeklyText: d,
+      weeklyOnly: currentTab === 'weekly',
+      singleUrl: 'reschedule-vision.html', weeklyUrl: 'reschedule-weekly-vision.html' });
+  });
+
+  document.getElementById('action-cancel').addEventListener('click', function(e) {
+    e.stopPropagation();
+    tooltip.classList.remove('visible');
+    var lesson = tooltipActiveSlot && tooltipActiveSlot._lesson;
+    if (lesson) { lfStartCancel(lesson); return; }
+    var slot = tooltipActiveSlot;
+    var weekday = slot && slot.dataset ? slot.dataset.day : '';
+    var ctime = slot && slot.dataset ? slot.dataset.time : '';
+    var configCount = weekday
+      ? scheduledLessons.filter(function (l) { return l.day.split(',')[0] === weekday.slice(0, 3) && l.time === ctime; }).length
+      : scheduledLessons.length;
+    var d = lfTooltipDate();
+    LessonFlows.cancel({ date: d, weeklyText: d, weeklyCount: configCount,
+      weeklyOnly: currentTab === 'weekly',
+      singleUrl: 'reschedule-vision.html', weeklyUrl: 'reschedule-weekly-vision.html',
+      onSingle: function () { setProgress(progressFilled - lessonUnits((MOCK_SCHEDULED[PROGRESS_TOTAL][0] || {}).mins || 50)); revertSlot(slot); },
+      onAll: function () { cancelWeeklyConfig(weekday, ctime); } });
+  });
+
+  // ── Init ───────────────────────────────────────────────────────────
+  lucide.createIcons();
+
+  // ── CTA navigation ─────────────────────────────────────────────────
+  // Dated occurrences for a new weekly config (the weekday for the whole cycle),
+  // in the store's format ("Mon, 16 Mar").
+  function weekdayOccurrences(weekdayFull, time, mins) {
+    var col = DAY_NAMES.indexOf(weekdayFull);
+    if (col < 0) return [];
+    var anchor = new Date(2026, 2, 16); // Monday 16 Mar 2026
+    var out = [];
+    for (var w = 0; w < WEEKS_PER_CYCLE; w++) {
+      var d = new Date(anchor); d.setDate(anchor.getDate() + col + w * 7);
+      var di = d.getDay() === 0 ? 6 : d.getDay() - 1;
+      out.push({ day: DAY_NAMES[di].slice(0, 3) + ', ' + d.getDate() + ' ' + MONTHS[d.getMonth()], time: time, mins: mins, type: 'weekly' });
+    }
+    return out;
+  }
+
+  // Secondary CTA: always available, opens the "get more lessons" modal — the
+  // route to scheduling more when the learner is out of (or wants more) balance.
+  var addLessonsBtn = document.getElementById('add-lessons-btn');
+  if (addLessonsBtn) addLessonsBtn.addEventListener('click', function() {
+    if (window.DurationStepper && DurationStepper.openMore) DurationStepper.openMore();
+  });
+
+  document.getElementById('cta-btn').addEventListener('click', function() {
+    if (this.classList.contains('btn-disabled')) return;
+    if (currentTab === 'weekly') {
+      // Persist each new weekly config's occurrences to the shared store.
+      weeklySelections.forEach(function(sel) {
+        scheduledLessons = scheduledLessons.concat(weekdayOccurrences(sel.day, sel.time, selectedDuration));
+      });
+      if (window.AppState) AppState.setLessons(scheduledLessons);
+      var pw = new URLSearchParams();
+      weeklySelections.forEach(function(sel) {
+        pw.append('slot', 'Every ' + sel.day + ' \u00b7 ' + sel.time + ' \u2013 ' + addMinutes(sel.time, selectedDuration));
+      });
+      window.location.href = '../base/confirmation-weekly.html?' + pw.toString();
+    } else {
+      // Persist each new single lesson to the shared store.
+      singleSelections.forEach(function(sel) {
+        scheduledLessons.push({ day: sel.day, time: sel.time, mins: selectedDuration, type: 'single' });
+      });
+      if (window.AppState) AppState.setLessons(scheduledLessons);
+      var p = new URLSearchParams();
+      singleSelections.forEach(function(sel) {
+        p.append('slot', sel.day + ', ' + sel.time + ' \u2013 ' + addMinutes(sel.time, selectedDuration));
+      });
+      window.location.href = '../base/confirmation-single.html?' + p.toString();
+    }
+  });
+
+  // ── Load the active plan's booked lessons (from the shared store, so
+  //    cancellations made on other pages carry over; seed from mock if fresh) ──
+  totalLessons = PROGRESS_TOTAL;
+  var _stored = (window.AppState && AppState.getLessons) ? AppState.getLessons() : null;
+  if (_stored) {
+    scheduledLessons = _stored;
+  } else {
+    scheduledLessons = MOCK_SCHEDULED[PROGRESS_TOTAL].map(function(l) { return Object.assign({}, l); });
+    if (window.AppState) AppState.setLessons(scheduledLessons);
+  }
+  // Balance reflects whatever is currently booked.
+  setProgress(sumLessonUnits(scheduledLessons));
+  // Match the static recurring (Wed) slot's tooltip to the plan's lesson length.
+  (function () {
+    var rec = document.querySelector('#weekly-view .slot[data-recurring="1"]');
+    var bm = (MOCK_SCHEDULED[PROGRESS_TOTAL][0] && MOCK_SCHEDULED[PROGRESS_TOTAL][0].mins) || 50;
+    if (rec) rec.dataset.tooltip = 'Lesson with Jonathan G.\nEvery Wednesday · 14:00 – ' + addMinutes('14:00', bm);
+  })();
+  // The Wednesday slot is statically booked in markup — revert it if Wednesday
+  // is no longer in the store (e.g. cancelled on another page).
+  (function () {
+    var hasWed = scheduledLessons.some(function (l) { return l.day.split(',')[0] === 'Wed'; });
+    if (!hasWed) { var rec = document.querySelector('#weekly-view .slot[data-recurring="1"]'); if (rec) revertSlot(rec); }
+  })();
+  updateWeeklyViewBookings();
+  document.getElementById('plan-picker-overlay').style.display = 'none';
+  document.getElementById('content-wrapper').style.display = '';
+  renderLessonsPanel();
+  updateSidebar();
+  applyDefaultDuration(); // default to the largest affordable duration (50, else 25)
+  lucide.createIcons();
+</script>
+</body>
+</html>

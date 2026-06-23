@@ -1,0 +1,97 @@
+/* ───────────────────────────────────────────────────────────────
+   Shared cancel / reschedule modal flows
+   Used by my-lessons, schedule, reschedule and reschedule-weekly.
+   All ids/classes are namespaced "lf-" to avoid clashing with any
+   page-specific modal markup. Relies on the global .modal-overlay /
+   .modal-card / .modal-title / .modal-body / .tutor-avatar /
+   .btn-cancel-lesson from styles.css.
+   ─────────────────────────────────────────────────────────────── */
+
+/* Wider, more rectangular modals (stay-on-track + choices) */
+#lf-stay-modal .modal-card,
+#lf-cancel-choice .modal-card,
+#lf-reschedule-choice .modal-card { width: 640px; }
+#lf-cancel-modal .modal-card { width: 440px; }
+
+#lf-stay-modal .modal-card,
+#lf-cancel-choice .modal-card,
+#lf-reschedule-choice .modal-card,
+#lf-cancel-modal .modal-card { gap: var(--size-16); position: relative; }
+
+/* Close button (top-right) */
+.lf-close {
+  position: absolute; top: var(--size-16); right: var(--size-16);
+  background: none; border: none; color: var(--text-secondary);
+  cursor: pointer; padding: var(--size-4); line-height: 0; border-radius: var(--radius-sm);
+}
+.lf-close:hover { color: var(--text-primary); }
+
+/* Stay on track */
+.lf-stay-icon { color: var(--text-primary); }
+.lf-stay-actions { display: flex; justify-content: flex-end; gap: var(--size-12); margin-top: var(--size-8); }
+.lf-btn-secondary, .lf-btn-primary {
+  height: var(--size-btn); padding: 0 var(--size-20); border-radius: var(--radius);
+  font-family: var(--font); font-size: var(--font-size-base); font-weight: 600;
+  color: var(--text-primary); cursor: pointer;
+}
+.lf-btn-secondary { border: 2px solid var(--border-primary); background: var(--bg-primary); }
+.lf-btn-secondary:hover { background: var(--bg-secondary); }
+.lf-btn-primary { border: 2px solid var(--border-secondary); background: var(--brand); }
+.lf-btn-primary:hover { filter: brightness(0.95); }
+
+/* Choice options (cancel + reschedule) */
+.lf-choice-options { display: flex; flex-direction: column; gap: 10px; }
+.lf-choice-option {
+  display: flex; flex-direction: row; align-items: center; width: 100%;
+  padding: 14px var(--size-16); background: var(--bg-primary);
+  border: 2px solid var(--border-primary); border-radius: var(--radius);
+  cursor: pointer; text-align: left; font-family: var(--font);
+  transition: border-color var(--transition-fast), background var(--transition-fast);
+}
+.lf-choice-option:hover { border-color: var(--border-secondary); background: var(--bg-secondary); }
+.lf-choice-icon { flex-shrink: 0; color: var(--text-secondary); margin-right: var(--size-12); }
+.lf-choice-body { display: flex; flex-direction: column; gap: var(--size-4); flex: 1; min-width: 0; }
+.lf-choice-title { font-size: var(--font-size-base); font-weight: 600; color: var(--text-primary); }
+.lf-choice-sub { font-size: var(--font-size-sm); font-weight: 400; color: var(--text-secondary); line-height: 1.4; }
+.lf-choice-chevron { flex-shrink: 0; color: var(--text-tertiary); }
+
+/* Cancel form */
+.lf-form-label { font-size: var(--font-size-sm); font-weight: 600; color: var(--text-primary); margin-bottom: -8px; }
+#lf-cancel-modal select, #lf-cancel-modal textarea {
+  width: 100%; box-sizing: border-box; font-family: var(--font); font-size: var(--font-size-base);
+  color: var(--text-primary); background: var(--bg-primary); border: 1px solid var(--border-primary);
+  border-radius: var(--radius-sm); padding: var(--size-8) var(--size-12);
+  appearance: none; -webkit-appearance: none;
+}
+#lf-cancel-modal select:focus, #lf-cancel-modal textarea:focus { outline: none; border-color: var(--border-secondary); }
+#lf-cancel-modal textarea { resize: none; height: 80px; line-height: 1.5; }
+
+/* Back link + confirm row */
+.lf-back {
+  display: none; align-items: center; gap: var(--size-4);
+  background: none; border: none; padding: 0; font-family: var(--font);
+  font-size: var(--font-size-base); font-weight: 600; color: var(--text-primary); cursor: pointer;
+}
+.lf-back span { text-decoration: underline; text-underline-offset: 2px; }
+#lf-cancel-actions { display: flex; flex-direction: column; gap: var(--size-8); margin-top: var(--size-16); }
+#lf-cancel-actions.lf-row { flex-direction: row; align-items: center; justify-content: space-between; gap: var(--size-16); }
+#lf-cancel-actions.lf-row .lf-back { display: inline-flex; }
+#lf-cancel-actions.lf-row .btn-cancel-lesson { margin-top: 0; padding: 0 var(--size-20); }
+
+/* "You've canceled this lesson" modal */
+#lf-canceled-modal .modal-card {
+  width: 440px;
+  padding: var(--size-32);
+  gap: var(--size-16);
+  position: relative;
+  align-items: center;
+  text-align: center;
+}
+.lf-canceled-avatar {
+  width: 72px; height: 72px; border-radius: 50%; overflow: hidden;
+  margin-top: var(--size-8);
+}
+.lf-canceled-avatar img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.lf-canceled-actions { display: flex; flex-direction: column; gap: var(--size-12); width: 100%; margin-top: var(--size-8); }
+.lf-canceled-actions .lf-btn-primary,
+.lf-canceled-actions .lf-btn-secondary { width: 100%; }

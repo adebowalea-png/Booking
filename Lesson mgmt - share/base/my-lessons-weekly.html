@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>My lessons</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../styles.css" />
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+  <style>
+    /* Cancel modal form elements */
+    #cancel-modal .modal-card { gap: var(--size-16); }
+    #cancel-modal .cancel-form-label {
+      font-size: var(--font-size-sm); font-weight: 600; color: var(--text-primary);
+      margin-bottom: -8px;
+    }
+    #cancel-modal select,
+    #cancel-modal textarea {
+      width: 100%; box-sizing: border-box;
+      font-family: var(--font); font-size: var(--font-size-base); color: var(--text-primary);
+      background: var(--bg-primary); border: 1px solid var(--border-primary);
+      border-radius: var(--radius-sm); padding: var(--size-8) var(--size-12);
+      appearance: none; -webkit-appearance: none;
+    }
+    #cancel-modal select:focus,
+    #cancel-modal textarea:focus { outline: none; border-color: var(--border-secondary); }
+    #cancel-modal textarea { resize: none; height: 80px; line-height: 1.5; }
+    .cancel-stop-weekly {
+      display: flex; align-items: center; gap: var(--size-8);
+      font-size: var(--font-size-base); color: var(--text-primary); cursor: pointer;
+    }
+    .cancel-stop-weekly input[type="checkbox"] {
+      width: 18px; height: 18px; flex-shrink: 0; cursor: pointer;
+      accent-color: var(--text-primary);
+    }
+    #cancel-stop-weekly-row { display: none; }
+  </style>
+</head>
+<body>
+
+<!-- Platform nav -->
+<nav class="platform-nav">
+  <a href="../index.html" class="platform-nav-logo">
+    <span>Preply</span>
+  </a>
+  <div class="platform-nav-right">
+    <button class="platform-nav-btn">Subscribe</button>
+    <button class="platform-nav-btn">0 lessons to schedule</button>
+    <button class="platform-nav-btn">Get €40 credit</button>
+  </div>
+</nav>
+
+<!-- Sub-nav -->
+<div class="subnav">
+  <div class="subnav-links">
+    <a class="subnav-link" href="#">Home</a>
+    <a class="subnav-link" href="#">Messages</a>
+    <a class="subnav-link active" href="#">My lessons</a>
+    <a class="subnav-link" href="#">Learn</a>
+    <a class="subnav-link" href="#">Settings</a>
+  </div>
+  <a class="subnav-for-business" href="#">For business</a>
+</div>
+
+<!-- Page content -->
+<div style="padding: 0 32px;">
+
+  <!-- Heading row -->
+  <div class="my-lessons-header">
+    <h1>My lessons</h1>
+    <a href="schedule.html" class="schedule-btn">
+      <div class="schedule-btn-main">
+        <i data-lucide="plus" width="24" height="24" stroke-width="2.2"></i>
+        Schedule lesson
+      </div>
+    </a>
+  </div>
+
+  <!-- Content tabs -->
+  <div class="content-tabs">
+    <div class="content-tab active">
+      <i data-lucide="clock" class="content-tab-icon" stroke-width="1.8"></i>
+      Lessons
+    </div>
+    <div class="content-tab">
+      <i data-lucide="calendar" class="content-tab-icon" stroke-width="1.8"></i>
+      Calendar
+    </div>
+    <div class="content-tab">
+      <i data-lucide="graduation-cap" class="content-tab-icon" stroke-width="1.8"></i>
+      Tutors
+    </div>
+  </div>
+
+  <!-- Lessons list -->
+  <div class="lessons-container">
+
+    <!-- Upcoming lessons -->
+    <div class="lessons-section">
+      <h2 class="lessons-section-title">Upcoming lessons</h2>
+      <div class="lesson-cards">
+
+        <!-- Lesson 1: Wed Mar 18 -->
+        <div class="lesson-card">
+          <div class="lesson-card-row">
+            <div class="lesson-avatar">
+              <img src="https://randomuser.me/api/portraits/men/32.jpg" alt="Jonathan" />
+            </div>
+            <div class="lesson-info">
+              <div class="lesson-time-row">
+                <i data-lucide="repeat-2" class="lesson-time-icon" stroke-width="1.8"></i>
+                <span class="lesson-time-text">Wednesday, Mar 18 · 14:00 – 14:50</span>
+              </div>
+              <div class="lesson-meta">Jonathan, English</div>
+            </div>
+            <div class="lesson-actions" data-type="upcoming" data-date="Wednesday, Mar 18 · 14:00 – 14:50">
+              <button class="icon-btn" aria-label="More options">
+                <i data-lucide="more-horizontal" width="20" height="20"></i>
+              </button>
+              <div class="lesson-dropdown">
+                <button class="lesson-dropdown-item js-reschedule"><i data-lucide="calendar-sync" width="20" height="20" stroke-width="1.8"></i>Reschedule lesson</button>
+                <button class="lesson-dropdown-item"><i data-lucide="message-square" width="20" height="20" stroke-width="1.8"></i>Message tutor</button>
+                <button class="lesson-dropdown-item"><i data-lucide="user" width="20" height="20" stroke-width="1.8"></i>See tutor profile</button>
+                <button class="lesson-dropdown-item destructive js-cancel"><i data-lucide="ban" width="20" height="20" stroke-width="1.8"></i>Cancel lesson</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Lesson 2: Wed Mar 25 -->
+        <div class="lesson-card">
+          <div class="lesson-card-row">
+            <div class="lesson-avatar">
+              <img src="https://randomuser.me/api/portraits/men/32.jpg" alt="Jonathan" />
+            </div>
+            <div class="lesson-info">
+              <div class="lesson-time-row">
+                <i data-lucide="repeat-2" class="lesson-time-icon" stroke-width="1.8"></i>
+                <span class="lesson-time-text">Wednesday, Mar 25 · 14:00 – 14:50</span>
+              </div>
+              <div class="lesson-meta">Jonathan, English</div>
+            </div>
+            <div class="lesson-actions" data-type="upcoming" data-date="Wednesday, Mar 25 · 14:00 – 14:50">
+              <button class="icon-btn" aria-label="More options">
+                <i data-lucide="more-horizontal" width="20" height="20"></i>
+              </button>
+              <div class="lesson-dropdown">
+                <button class="lesson-dropdown-item js-reschedule"><i data-lucide="calendar-sync" width="20" height="20" stroke-width="1.8"></i>Reschedule lesson</button>
+                <button class="lesson-dropdown-item"><i data-lucide="message-square" width="20" height="20" stroke-width="1.8"></i>Message tutor</button>
+                <button class="lesson-dropdown-item"><i data-lucide="user" width="20" height="20" stroke-width="1.8"></i>See tutor profile</button>
+                <button class="lesson-dropdown-item destructive js-cancel"><i data-lucide="ban" width="20" height="20" stroke-width="1.8"></i>Cancel lesson</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Lesson 3: Wed Apr 1 -->
+        <div class="lesson-card">
+          <div class="lesson-card-row">
+            <div class="lesson-avatar">
+              <img src="https://randomuser.me/api/portraits/men/32.jpg" alt="Jonathan" />
+            </div>
+            <div class="lesson-info">
+              <div class="lesson-time-row">
+                <i data-lucide="repeat-2" class="lesson-time-icon" stroke-width="1.8"></i>
+                <span class="lesson-time-text">Wednesday, Apr 1 · 14:00 – 14:50</span>
+              </div>
+              <div class="lesson-meta">Jonathan, English</div>
+            </div>
+            <div class="lesson-actions" data-type="upcoming" data-date="Wednesday, Apr 1 · 14:00 – 14:50">
+              <button class="icon-btn" aria-label="More options">
+                <i data-lucide="more-horizontal" width="20" height="20"></i>
+              </button>
+              <div class="lesson-dropdown">
+                <button class="lesson-dropdown-item js-reschedule"><i data-lucide="calendar-sync" width="20" height="20" stroke-width="1.8"></i>Reschedule lesson</button>
+                <button class="lesson-dropdown-item"><i data-lucide="message-square" width="20" height="20" stroke-width="1.8"></i>Message tutor</button>
+                <button class="lesson-dropdown-item"><i data-lucide="user" width="20" height="20" stroke-width="1.8"></i>See tutor profile</button>
+                <button class="lesson-dropdown-item destructive js-cancel"><i data-lucide="ban" width="20" height="20" stroke-width="1.8"></i>Cancel lesson</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Lesson 4: Wed Apr 8 — with info alert -->
+        <div class="lesson-card">
+          <div class="lesson-card-row">
+            <div class="lesson-avatar">
+              <img src="https://randomuser.me/api/portraits/men/32.jpg" alt="Jonathan" />
+            </div>
+            <div class="lesson-info">
+              <div class="lesson-time-row">
+                <i data-lucide="repeat-2" class="lesson-time-icon" stroke-width="1.8"></i>
+                <span class="lesson-time-text">Wednesday, Apr 8 · 14:00 – 14:50</span>
+              </div>
+              <div class="lesson-meta">Jonathan, English</div>
+            </div>
+            <div class="lesson-actions" data-type="upcoming" data-date="Wednesday, Apr 8 · 14:00 – 14:50">
+              <button class="icon-btn" aria-label="More options">
+                <i data-lucide="more-horizontal" width="20" height="20"></i>
+              </button>
+              <div class="lesson-dropdown">
+                <button class="lesson-dropdown-item js-reschedule"><i data-lucide="calendar-sync" width="20" height="20" stroke-width="1.8"></i>Reschedule lesson</button>
+                <button class="lesson-dropdown-item"><i data-lucide="message-square" width="20" height="20" stroke-width="1.8"></i>Message tutor</button>
+                <button class="lesson-dropdown-item"><i data-lucide="user" width="20" height="20" stroke-width="1.8"></i>See tutor profile</button>
+                <button class="lesson-dropdown-item destructive js-cancel"><i data-lucide="ban" width="20" height="20" stroke-width="1.8"></i>Cancel lesson</button>
+              </div>
+            </div>
+          </div>
+          <div class="lesson-alert">
+            <i data-lucide="info" class="lesson-alert-icon" stroke-width="1.8"></i>
+            <span class="lesson-alert-text">This time is reserved for you. It will be scheduled automatically after your plan renews on <strong>Apr 5</strong>.</span>
+          </div>
+        </div>
+
+      </div><!-- /lesson-cards -->
+    </div><!-- /upcoming lessons -->
+
+    <!-- Weekly lessons -->
+    <div class="lessons-section">
+      <h2 class="lessons-section-title">Weekly lessons</h2>
+      <div class="lesson-cards">
+
+        <!-- Weekly: Every Wednesday -->
+        <div class="lesson-card">
+          <div class="lesson-card-row">
+            <div class="lesson-avatar">
+              <img src="https://randomuser.me/api/portraits/men/32.jpg" alt="Jonathan" />
+            </div>
+            <div class="lesson-info">
+              <div class="lesson-time-row">
+                <i data-lucide="repeat-2" class="lesson-time-icon" stroke-width="1.8"></i>
+                <span class="lesson-time-text">Every Wednesday · 14:00 – 14:50</span>
+              </div>
+              <div class="lesson-meta">Jonathan, English</div>
+            </div>
+            <div class="lesson-actions" data-type="weekly" data-date="Every Wednesday · 14:00 – 14:50">
+              <button class="icon-btn" aria-label="More options">
+                <i data-lucide="more-horizontal" width="20" height="20"></i>
+              </button>
+              <div class="lesson-dropdown">
+                <button class="lesson-dropdown-item js-reschedule"><i data-lucide="calendar-sync" width="20" height="20" stroke-width="1.8"></i>Reschedule lesson</button>
+                <button class="lesson-dropdown-item"><i data-lucide="message-square" width="20" height="20" stroke-width="1.8"></i>Message tutor</button>
+                <button class="lesson-dropdown-item"><i data-lucide="user" width="20" height="20" stroke-width="1.8"></i>See tutor profile</button>
+                <button class="lesson-dropdown-item destructive js-cancel"><i data-lucide="ban" width="20" height="20" stroke-width="1.8"></i>Cancel lesson</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div><!-- /lesson-cards -->
+    </div><!-- /weekly lessons -->
+
+  </div><!-- /lessons-container -->
+
+</div><!-- /page content -->
+
+<!-- Cancel lesson modal -->
+<div class="modal-overlay" id="cancel-modal">
+  <div class="modal-card">
+    <div class="tutor-avatar">
+      <img src="https://randomuser.me/api/portraits/men/32.jpg" alt="Jonathan" />
+    </div>
+    <div class="modal-title">Cancel this lesson?</div>
+    <div class="modal-body cancel-datetime" id="cancel-datetime"></div>
+    <label class="cancel-form-label">Select a reason</label>
+    <select id="cancel-reason">
+      <option value="" disabled selected>Choose a reason</option>
+      <option>I have a scheduling conflict</option>
+      <option>I'm not feeling well</option>
+      <option>I need to reschedule for another time</option>
+      <option>Personal reasons</option>
+      <option>Other</option>
+    </select>
+    <label class="cancel-form-label">Send Jonathan a message (optional)</label>
+    <textarea id="cancel-message" placeholder="Let Jonathan know why you're canceling"></textarea>
+    <label id="cancel-stop-weekly-row" class="cancel-stop-weekly">
+      <input type="checkbox" id="cancel-stop-weekly" />
+      Stop scheduling weekly lessons
+    </label>
+    <div class="modal-actions">
+      <button class="btn-cancel-lesson" id="cancel-modal-confirm">Cancel lesson</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  var cancelModal = document.getElementById('cancel-modal');
+
+  document.querySelectorAll('.lesson-actions').forEach(function(actions) {
+    var btn = actions.querySelector('.icon-btn');
+    var menu = actions.querySelector('.lesson-dropdown');
+    var type = actions.dataset.type;
+    var date = actions.dataset.date;
+
+    btn.addEventListener('click', function(e) {
+      e.stopPropagation();
+      var isOpen = menu.classList.contains('open');
+      document.querySelectorAll('.lesson-dropdown.open').forEach(function(m) {
+        m.classList.remove('open');
+      });
+      if (!isOpen) menu.classList.add('open');
+    });
+
+    menu.querySelector('.js-reschedule').addEventListener('click', function() {
+      window.location.href = type === 'weekly'
+        ? 'reschedule-weekly.html'
+        : 'reschedule-single.html';
+    });
+
+    menu.querySelector('.js-cancel').addEventListener('click', function(e) {
+      e.stopPropagation();
+      menu.classList.remove('open');
+      document.getElementById('cancel-datetime').textContent = date;
+      document.getElementById('cancel-reason').value = '';
+      document.getElementById('cancel-message').value = '';
+      document.getElementById('cancel-stop-weekly').checked = false;
+      document.getElementById('cancel-stop-weekly-row').style.display = type === 'upcoming' ? 'flex' : 'none';
+      cancelModal.classList.add('visible');
+    });
+  });
+
+  document.addEventListener('click', function() {
+    document.querySelectorAll('.lesson-dropdown.open').forEach(function(m) {
+      m.classList.remove('open');
+    });
+  });
+
+  document.getElementById('cancel-modal-confirm').addEventListener('click', function() {
+    cancelModal.classList.remove('visible');
+  });
+
+  cancelModal.addEventListener('click', function(e) {
+    if (e.target === cancelModal) cancelModal.classList.remove('visible');
+  });
+</script>
+<script>lucide.createIcons();</script>
+</body>
+</html>
