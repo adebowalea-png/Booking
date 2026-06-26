@@ -310,10 +310,14 @@
       white-space: nowrap;
     }
     .lesson-join-btn:hover { filter: brightness(0.95); }
+    #upcoming-lessons-section {
+      gap: var(--size-12);
+    }
     #upcoming-groups {
       display: flex;
       flex-direction: column;
       gap: var(--size-24);
+      margin-top: var(--size-24);
     }
     .lesson-period-group {
       display: flex;
@@ -327,6 +331,21 @@
       font-size: var(--font-size-base);
       font-weight: 600;
       color: var(--text-secondary);
+    }
+    .lesson-cycle-label {
+      margin-top: -2px;
+      font-size: var(--font-size-base);
+      font-weight: 700;
+      line-height: 1.35;
+      color: var(--text-primary);
+    }
+    .lesson-cycle-label span {
+      color: var(--text-secondary);
+    }
+    .lesson-period-heading {
+      display: flex;
+      flex-direction: column;
+      gap: var(--size-4);
     }
     .lesson-period-info {
       position: relative;
@@ -789,6 +808,7 @@
     <!-- Upcoming lessons -->
     <div class="lessons-section" id="upcoming-lessons-section">
       <h2 class="lessons-section-title">Upcoming lessons</h2>
+      <div class="lesson-cycle-label" id="current-cycle-label"></div>
       <div id="upcoming-groups"></div>
 
       <div class="see-more-wrap" id="see-more-wrap">
@@ -1170,6 +1190,8 @@
   }
   var ML_UNITS = { 25: 0.5, 50: 1, 80: 1.5, 110: 2, 140: 2.5, 170: 3, 200: 3.5 };
   var ML_MONTH_IDX = { Jan: 0, Feb: 1, Mar: 2, Apr: 3, May: 4, Jun: 5, Jul: 6, Aug: 7, Sep: 8, Oct: 9, Nov: 10, Dec: 11 };
+  var ML_MONTH_FULL = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+  var ML_CYCLE_START = new Date(2026, 2, 1);
   function mlUnits(m) { return (m in ML_UNITS) ? ML_UNITS[m] : Math.round(m / 50 * 2) / 2; }
   function mlSumUnits(arr) { return (arr || []).reduce(function (s, l) { return s + mlUnits(l.mins || 50); }, 0); }
   function mlPersist() { if (window.AppState) AppState.setLessons(mlLessons); }
@@ -1184,6 +1206,26 @@
     var day = x.getDay() === 0 ? 6 : x.getDay() - 1;
     x.setDate(x.getDate() - day);
     return x;
+  }
+  function mlOrdinal(n) {
+    var mod100 = n % 100;
+    if (mod100 >= 11 && mod100 <= 13) return n + 'th';
+    return n + ({ 1: 'st', 2: 'nd', 3: 'rd' }[n % 10] || 'th');
+  }
+  function mlCycleForIndex(index) {
+    var start = new Date(ML_CYCLE_START);
+    start.setDate(ML_CYCLE_START.getDate() + index * 28);
+    var end = new Date(start);
+    end.setDate(start.getDate() + 27);
+    return { start: start, end: end };
+  }
+  function mlCycleRange(index) {
+    var cycle = mlCycleForIndex(index);
+    var startMonth = ML_MONTH_FULL[cycle.start.getMonth()];
+    var endMonth = ML_MONTH_FULL[cycle.end.getMonth()];
+    var startLabel = (cycle.start.getMonth() === cycle.end.getMonth() ? startMonth.slice(0, 3) : startMonth) + ' ' + mlOrdinal(cycle.start.getDate());
+    var endLabel = (cycle.start.getMonth() === cycle.end.getMonth() ? '' : endMonth + ' ') + mlOrdinal(cycle.end.getDate());
+    return startLabel + ' - ' + endLabel;
   }
   // Remove one stored occurrence matching a card's date string, then persist.
   function mlRemoveOccurrence(dateStr) {
@@ -1290,6 +1332,10 @@
       var first = mlLessons[0];
       upNextWrap.innerHTML = card(upLabel(first), 'upcoming', false, first.type === 'single' ? 'calendar' : 'repeat-2', { upNext: true, mins: first.mins || 50, lessonType: first.type });
     }
+    var currentCycleLabel = document.getElementById('current-cycle-label');
+    if (currentCycleLabel) {
+      currentCycleLabel.innerHTML = 'Current cycle: <span>' + mlCycleRange(0) + '</span>';
+    }
     var upcoming = mlLessons.slice(1);
     var refWeek = mlStartOfWeek(mlDateOf(mlLessons[0]));
     var visibleLimit = 6;
@@ -1313,11 +1359,13 @@
         var title = g.label;
         if (g.label === 'Next Cycle') {
           title += '<span class="lesson-period-info" tabindex="0"><i data-lucide="info" width="16" height="16" stroke-width="2"></i>' +
-            '<span class="lesson-period-info-tooltip">These are reserved lessons for your next cycle starting ' + g.start + '. They depend on your lesson plan renewing before they are scheduled.</span>' +
+            '<span class="lesson-period-info-tooltip">These are reserved lessons for your next cycle, ' + mlCycleRange(1) + '. They depend on your lesson plan renewing before they are scheduled.</span>' +
           '</span>';
         }
         return '<div class="lesson-period-group' + (allHidden ? ' lesson-hidden ml-collapsible' : '') + '">' +
-          '<div class="lesson-period-title">' + title + '</div>' +
+          '<div class="lesson-period-heading"><div class="lesson-period-title">' + title + '</div>' +
+          (g.label === 'Next Cycle' ? '<div class="lesson-cycle-label">' + mlCycleRange(1) + '</div>' : '') +
+          '</div>' +
           '<div class="lesson-cards">' + g.rows.join('') + '</div>' +
         '</div>';
       }).join('');
