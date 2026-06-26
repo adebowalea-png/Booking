@@ -266,11 +266,46 @@
   flex-shrink: 0;
 }
 
-/* Booked/current timeslots: tutor avatar, white bg + same border as available */
-.slot.slot-booked,
+/* Booked/current timeslots: tied visually to the green progress plan */
+.slot.slot-booked {
+  flex-direction: column;
+  gap: 1px;
+  background: rgba(29, 138, 115, 0.14);
+  border: 2px solid #1d8a73;
+}
 .slot.slot-current {
-  background: var(--bg-primary);
-  border: 2px solid var(--border-primary);
+  position: relative;
+  overflow: hidden;
+  flex-direction: column;
+  gap: 1px;
+  background: rgba(29, 138, 115, 0.14);
+  border: 2px solid transparent;
+}
+.slot-motion-border {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 1;
+  pointer-events: none;
+}
+.slot-motion-border rect {
+  fill: none;
+  stroke: #1d8a73;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-dasharray: 7 5;
+  vector-effect: non-scaling-stroke;
+  animation: slot-border-path 0.9s linear infinite;
+}
+@keyframes slot-border-path {
+  to {
+    stroke-dashoffset: -12;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .slot-motion-border rect { animation: none; }
 }
 .slot-avatar {
   width: 30px; height: 30px;
@@ -278,6 +313,29 @@
   object-fit: cover;
   display: block;
   border: 0.5px solid var(--border-subtle);
+}
+.slot-lesson-time,
+.slot-lesson-tutor {
+  position: relative;
+  z-index: 1;
+  display: block;
+  max-width: 100%;
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.slot-lesson-time {
+  font-size: var(--font-size-base);
+  font-weight: 700;
+  line-height: 18px;
+  color: var(--text-primary);
+}
+.slot-lesson-tutor {
+  font-size: var(--font-size-xs);
+  font-weight: 500;
+  line-height: 14px;
+  color: var(--text-secondary);
 }
 .ds-balance-avatar {
   width: 72px; height: 72px; border-radius: 50%; overflow: hidden;

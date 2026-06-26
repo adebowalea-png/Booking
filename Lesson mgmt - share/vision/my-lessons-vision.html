@@ -321,9 +321,67 @@
       gap: var(--size-12);
     }
     .lesson-period-title {
+      display: flex;
+      align-items: center;
+      gap: var(--size-4);
       font-size: var(--font-size-base);
       font-weight: 600;
       color: var(--text-secondary);
+    }
+    .lesson-period-info {
+      position: relative;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 18px;
+      height: 18px;
+      color: var(--text-tertiary);
+      cursor: default;
+    }
+    .lesson-period-info-tooltip {
+      position: absolute;
+      left: 50%;
+      bottom: calc(100% + 8px);
+      transform: translateX(-50%) translateY(4px);
+      width: 280px;
+      padding: var(--size-8) var(--size-12);
+      border-radius: var(--radius-sm);
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      font-size: var(--font-size-sm);
+      font-weight: 500;
+      line-height: 1.45;
+      box-shadow: var(--shadow-tooltip);
+      border: 1px solid var(--border-primary);
+      opacity: 0;
+      visibility: hidden;
+      pointer-events: none;
+      transition: opacity var(--transition-fast), transform var(--transition-fast);
+      z-index: 30;
+    }
+    .lesson-period-info:hover .lesson-period-info-tooltip,
+    .lesson-period-info:focus-visible .lesson-period-info-tooltip {
+      opacity: 1;
+      visibility: visible;
+      transform: translateX(-50%) translateY(0);
+    }
+    .lesson-type-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: var(--size-4);
+      padding: 2px var(--size-8);
+      border-radius: var(--radius-sm);
+      background: var(--bg-secondary);
+      color: var(--text-primary);
+      font-size: var(--font-size-sm);
+      font-weight: 700;
+      line-height: 20px;
+      flex-shrink: 0;
+    }
+    .lesson-type-badge svg {
+      width: 16px;
+      height: 16px;
+      flex-shrink: 0;
     }
     .lesson-period-group .lesson-cards {
       gap: 0;
@@ -1199,11 +1257,14 @@
     // cancellations AND reschedules (time/day changes) are reflected.
     function card(label, type, hidden, icon, opts) {
       opts = opts || {};
+      var lessonKind = opts.lessonType === 'single' ? 'single' : 'weekly';
+      var badgeIcon = lessonKind === 'single' ? 'calendar' : 'repeat-2';
+      var badgeText = lessonKind === 'single' ? 'Single' : 'Weekly';
       return '<div class="lesson-card' + (opts.upNext ? ' lesson-card--up-next' : '') + (hidden ? ' lesson-hidden ml-collapsible' : '') + '">' +
         '<div class="lesson-card-row">' +
           '<div class="lesson-avatar"><img src="https://randomuser.me/api/portraits/men/32.jpg" alt="Jonathan" /></div>' +
           '<div class="lesson-info">' +
-            '<div class="lesson-time-row"><i data-lucide="' + (icon || 'repeat-2') + '" class="lesson-time-icon" stroke-width="1.8"></i>' +
+            '<div class="lesson-time-row"><span class="lesson-type-badge"><i data-lucide="' + badgeIcon + '" stroke-width="2.2"></i>' + badgeText + '</span>' +
             '<span class="lesson-time-text">' + label + '</span></div>' +
             '<div class="lesson-meta">Jonathan, English · ' + (opts.mins || 50) + ' min</div>' +
           '</div>' +
@@ -1227,7 +1288,7 @@
     var upNextWrap = document.querySelector('#up-next-section .lesson-cards');
     if (upNextWrap) {
       var first = mlLessons[0];
-      upNextWrap.innerHTML = card(upLabel(first), 'upcoming', false, first.type === 'single' ? 'calendar' : 'repeat-2', { upNext: true, mins: first.mins || 50 });
+      upNextWrap.innerHTML = card(upLabel(first), 'upcoming', false, first.type === 'single' ? 'calendar' : 'repeat-2', { upNext: true, mins: first.mins || 50, lessonType: first.type });
     }
     var upcoming = mlLessons.slice(1);
     var refWeek = mlStartOfWeek(mlDateOf(mlLessons[0]));
@@ -1236,21 +1297,27 @@
     var byLabel = {};
     upcoming.forEach(function (l, i) {
       var weekDiff = Math.round((mlStartOfWeek(mlDateOf(l)) - refWeek) / 604800000);
-      var groupLabel = weekDiff <= 0 ? 'This week' : (weekDiff === 1 ? 'Next week' : 'Later');
+      var groupLabel = weekDiff <= 0 ? 'This week' : (weekDiff === 1 ? 'Next week' : 'Next Cycle');
       if (!byLabel[groupLabel]) {
-        byLabel[groupLabel] = { label: groupLabel, rows: [], hiddenRows: 0 };
+        byLabel[groupLabel] = { label: groupLabel, start: upLabel(l).split(' · ')[0], rows: [], hiddenRows: 0 };
         groups.push(byLabel[groupLabel]);
       }
       var hidden = i >= visibleLimit;
       if (hidden) byLabel[groupLabel].hiddenRows++;
-      byLabel[groupLabel].rows.push(card(upLabel(l), 'upcoming', hidden, l.type === 'single' ? 'calendar' : 'repeat-2', { mins: l.mins || 50 }));
+      byLabel[groupLabel].rows.push(card(upLabel(l), 'upcoming', hidden, l.type === 'single' ? 'calendar' : 'repeat-2', { mins: l.mins || 50, lessonType: l.type }));
     });
     var groupedWrap = document.getElementById('upcoming-groups');
     if (groupedWrap) {
       groupedWrap.innerHTML = groups.map(function (g) {
         var allHidden = g.hiddenRows === g.rows.length;
+        var title = g.label;
+        if (g.label === 'Next Cycle') {
+          title += '<span class="lesson-period-info" tabindex="0"><i data-lucide="info" width="16" height="16" stroke-width="2"></i>' +
+            '<span class="lesson-period-info-tooltip">These are reserved lessons for your next cycle starting ' + g.start + '. They depend on your lesson plan renewing before they are scheduled.</span>' +
+          '</span>';
+        }
         return '<div class="lesson-period-group' + (allHidden ? ' lesson-hidden ml-collapsible' : '') + '">' +
-          '<div class="lesson-period-title">' + g.label + '</div>' +
+          '<div class="lesson-period-title">' + title + '</div>' +
           '<div class="lesson-cards">' + g.rows.join('') + '</div>' +
         '</div>';
       }).join('');

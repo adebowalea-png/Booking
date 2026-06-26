@@ -48,19 +48,8 @@
     .tooltip-action-cancel { background: var(--destructive-bg); color: var(--text-inverted); border-color: transparent; }
     .tooltip-action-cancel:hover { background: var(--bg-destructive-hover); border-color: transparent; }
     .slot.slot-booked {
-      position: relative;
-      background: var(--bg-secondary);
-      border: 1.5px solid var(--border-primary);
-    }
-    .slot.slot-booked::after {
-      content: '';
-      position: absolute;
-      top: 6px;
-      right: 6px;
-      width: 7px;
-      height: 7px;
-      border-radius: 50%;
-      background: #1d8a73;
+      background: rgba(29, 138, 115, 0.14);
+      border: 2px solid #1d8a73;
     }
 
     /* Cancel modal */
@@ -481,7 +470,7 @@
         <div class="slots-row">
           <div class="slot slot-available" data-day="Monday" data-time="14:00">14:00</div>
           <div class="slot slot-available" data-day="Tuesday" data-time="14:00">14:00</div>
-          <div class="slot slot-booked" data-recurring="1" data-day="Wednesday" data-time="14:00" data-tooltip="Lesson with Jonathan G.&#10;Every Wednesday · 14:00 – 14:50"><img class="slot-avatar" src="https://randomuser.me/api/portraits/men/32.jpg" alt="Jonathan" /></div>
+          <div class="slot slot-booked" data-recurring="1" data-day="Wednesday" data-time="14:00" data-tooltip="Lesson with Jonathan G.&#10;Every Wednesday · 14:00 – 14:50"><span class="slot-lesson-time">14:00</span><span class="slot-lesson-tutor">Jonathan</span></div>
           <div class="slot slot-available" data-day="Thursday" data-time="14:00">14:00</div>
           <div class="slot slot-available" data-day="Friday" data-time="14:00">14:00</div>
           <div class="slot slot-unavailable"></div>
@@ -741,6 +730,9 @@
     var parts = time.split(':');
     var total = parseInt(parts[0]) * 60 + parseInt(parts[1]) + mins;
     return String(Math.floor(total / 60)).padStart(2, '0') + ':' + String(total % 60).padStart(2, '0');
+  }
+  function bookedSlotHtml(time) {
+    return '<span class="slot-lesson-time">' + time + '</span><span class="slot-lesson-tutor">Jonathan</span>';
   }
 
   var TIMES     = ['11:00','11:30','12:00','12:30','14:00','14:30','15:00','15:30','16:00','16:30','19:00'];
@@ -1551,7 +1543,7 @@
 
         if (entry && entry.state === 'booked') {
           cell.className = 'slot slot-booked';
-          cell.innerHTML = '<img class="slot-avatar" src="https://randomuser.me/api/portraits/men/32.jpg" alt="Jonathan" />';
+          cell.innerHTML = bookedSlotHtml(time);
           var dBooked = new Date(headerMonday); dBooked.setDate(headerMonday.getDate() + col);
           var bookedRawI = dBooked.getDay() === 0 ? 6 : dBooked.getDay() - 1;
           var bookedDateLabel = DAY_NAMES[bookedRawI].slice(0, 3) + ', ' + dBooked.getDate() + ' ' + MONTHS[dBooked.getMonth()];
@@ -1732,7 +1724,7 @@
       if (slot && slot.classList.contains('slot-available')) {
         slot.classList.remove('slot-available');
         slot.classList.add('slot-booked');
-        slot.innerHTML = '<img class="slot-avatar" src="https://randomuser.me/api/portraits/men/32.jpg" alt="Jonathan" />';
+        slot.innerHTML = bookedSlotHtml(lesson.time);
         slot.removeEventListener('click', handleWeeklySlotClick);
         slot.dataset.planBooked = '1';
         slot.dataset.tooltip = 'Lesson with Jonathan G.\nEvery ' + dayFull
