@@ -41,6 +41,7 @@
           '<div class="ds-balance-body" id="ds-balance-body">Impressive work! To continue your progress, add extra to your plan or cancel a lesson to free up balance</div>' +
           '<div class="ds-balance-actions">' +
             '<button class="ds-balance-primary" id="ds-balance-add">Add lessons</button>' +
+            '<button class="ds-balance-secondary" id="ds-balance-single" style="display:none;">Book a single lesson instead</button>' +
             '<button class="ds-balance-secondary" id="ds-balance-free">Free up balance</button>' +
           '</div>' +
         '</div>' +
@@ -112,6 +113,7 @@
       var body = document.getElementById('ds-balance-body');
       var addBtn = document.getElementById('ds-balance-add');   // → openMore
       var freeBtn = document.getElementById('ds-balance-free'); // → openFreeup
+      var singleBtn = document.getElementById('ds-balance-single'); // → single tab
       if (reason === 'plan') {
         var pc = (typeof window.getPlanContext === 'function') ? window.getPlanContext() : null;
         title.textContent = 'You’ve reached your plan size limit with Jonathan';
@@ -128,11 +130,16 @@
         }
         addBtn.textContent = 'Get more lessons';
         addBtn.className = 'ds-balance-primary'; addBtn.style.order = '1';
+        if (singleBtn) {
+          singleBtn.style.display = (typeof window.canBookSingleLesson === 'function' && window.canBookSingleLesson()) ? '' : 'none';
+          singleBtn.style.order = '2';
+        }
         freeBtn.textContent = 'Free up balance';
-        freeBtn.className = 'ds-balance-secondary'; freeBtn.style.order = '2';
+        freeBtn.className = 'ds-balance-secondary'; freeBtn.style.order = '3';
       } else {
         title.textContent = 'Not enough balance for this lesson';
         body.textContent = 'You don’t have enough balance free for this lesson. Free up balance by cancelling a lesson, or add extra to your plan.';
+        if (singleBtn) singleBtn.style.display = 'none';
         freeBtn.textContent = 'Free up balance';
         freeBtn.className = 'ds-balance-primary'; freeBtn.style.order = '1';
         addBtn.textContent = 'Add lessons';
@@ -148,7 +155,17 @@
 
     document.getElementById('ds-balance-close').addEventListener('click', closeBalance);
     document.getElementById('ds-balance-add').addEventListener('click', openMore);
-    document.getElementById('ds-balance-free').addEventListener('click', openFreeup);
+    document.getElementById('ds-balance-single').addEventListener('click', function () {
+      if (typeof window.canBookSingleLesson === 'function'
+        && window.canBookSingleLesson()
+        && typeof window.switchToSingleBooking === 'function') {
+        closeBalance();
+        window.switchToSingleBooking();
+      }
+    });
+    document.getElementById('ds-balance-free').addEventListener('click', function () {
+      openFreeup();
+    });
     balance.addEventListener('click', function (e) { if (e.target === balance) closeBalance(); });
 
     document.getElementById('ds-freeup-back').addEventListener('click', openBalance);

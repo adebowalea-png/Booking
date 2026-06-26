@@ -47,6 +47,10 @@
     .tooltip-action-btn:hover { background: var(--hover-bg); }
     .tooltip-action-cancel { background: var(--destructive-bg); color: var(--text-inverted); border-color: transparent; }
     .tooltip-action-cancel:hover { background: var(--bg-destructive-hover); border-color: transparent; }
+    .slot.slot-booked {
+      background: rgba(29, 138, 115, 0.14);
+      border: 2px solid #1d8a73;
+    }
 
     /* Cancel modal */
     #cancel-modal .modal-card { gap: var(--size-16); }
@@ -195,6 +199,62 @@
     }
 
     .my-lessons-accordion .lesson-cards { gap: 4px; }
+    .lesson-panel-group {
+      display: flex;
+      flex-direction: column;
+      gap: var(--size-8);
+    }
+    .lesson-panel-title {
+      font-size: var(--font-size-sm);
+      font-weight: 700;
+      color: var(--text-secondary);
+    }
+    .lesson-panel-empty {
+      font-size: var(--font-size-sm);
+      color: var(--text-tertiary);
+      padding: var(--size-12);
+      border-radius: var(--radius-sm);
+      background: var(--bg-secondary);
+    }
+    .slot-duration-context {
+      margin-top: var(--size-16);
+      font-size: var(--font-size-sm);
+      font-weight: 600;
+      color: var(--text-secondary);
+    }
+    #manage-booked-modal .modal-card {
+      width: 520px;
+      gap: var(--size-16);
+      position: relative;
+      align-items: stretch;
+      text-align: left;
+    }
+    .manage-booked-subcopy {
+      font-size: var(--font-size-base);
+      color: var(--text-secondary);
+      line-height: 1.5;
+      margin-top: -8px;
+    }
+    .manage-booked-body {
+      display: flex;
+      flex-direction: column;
+      gap: var(--size-16);
+      max-height: 520px;
+      overflow-y: auto;
+    }
+    .choice-modal-close {
+      position: absolute;
+      top: var(--size-16);
+      right: var(--size-16);
+      background: none;
+      border: none;
+      color: var(--text-secondary);
+      cursor: pointer;
+      padding: var(--size-4);
+      line-height: 0;
+      border-radius: var(--radius-sm);
+    }
+    .choice-modal-close:hover { color: var(--text-primary); }
 
     /* ── Panel chips ─────────────────────────────────────── */
     .lesson-chip--scheduled {
@@ -347,6 +407,8 @@
         </div>
       </div>
 
+      <div class="slot-duration-context" id="slot-duration-context"></div>
+
       <div id="weekly-view">
       <div class="days-row">
         <div class="day-label"><span>Mon</span></div>
@@ -408,7 +470,7 @@
         <div class="slots-row">
           <div class="slot slot-available" data-day="Monday" data-time="14:00">14:00</div>
           <div class="slot slot-available" data-day="Tuesday" data-time="14:00">14:00</div>
-          <div class="slot slot-booked" data-recurring="1" data-day="Wednesday" data-time="14:00" data-tooltip="Lesson with Jonathan G.&#10;Every Wednesday · 14:00 – 14:50"><img class="slot-avatar" src="https://randomuser.me/api/portraits/men/32.jpg" alt="Jonathan" /></div>
+          <div class="slot slot-booked" data-recurring="1" data-day="Wednesday" data-time="14:00" data-tooltip="Lesson with Jonathan G.&#10;Every Wednesday · 14:00 – 14:50"><span class="slot-lesson-time">14:00</span><span class="slot-lesson-tutor">Jonathan</span></div>
           <div class="slot slot-available" data-day="Thursday" data-time="14:00">14:00</div>
           <div class="slot slot-available" data-day="Friday" data-time="14:00">14:00</div>
           <div class="slot slot-unavailable"></div>
@@ -565,6 +627,7 @@
 
       <div class="cta-section">
         <button class="btn-outline" id="add-lessons-btn">Add extra lessons</button>
+        <button class="btn-outline" id="manage-booked-btn">Manage scheduled lessons</button>
         <button class="btn-primary btn-disabled" id="cta-btn">Schedule lessons</button>
         <div class="cta-note">Cancel or reschedule for free up to 12 hrs before the lesson starts.</div>
       </div>
@@ -607,6 +670,18 @@
       <button class="btn-secondary" id="modal-cancel">Cancel</button>
       <button class="btn-confirm" id="modal-confirm">Yes, continue</button>
     </div>
+  </div>
+</div>
+
+<!-- Manage booked lessons modal -->
+<div class="modal-overlay" id="manage-booked-modal">
+  <div class="modal-card">
+    <button class="choice-modal-close" id="manage-booked-close" aria-label="Close">
+      <i data-lucide="x" width="20" height="20" stroke-width="2.2"></i>
+    </button>
+    <div class="modal-title">Manage scheduled lessons</div>
+    <div class="manage-booked-subcopy">Review your booked lessons and choose what to reschedule or cancel.</div>
+    <div class="manage-booked-body" id="manage-booked-body"></div>
   </div>
 </div>
 
@@ -655,6 +730,9 @@
     var parts = time.split(':');
     var total = parseInt(parts[0]) * 60 + parseInt(parts[1]) + mins;
     return String(Math.floor(total / 60)).padStart(2, '0') + ':' + String(total % 60).padStart(2, '0');
+  }
+  function bookedSlotHtml(time) {
+    return '<span class="slot-lesson-time">' + time + '</span><span class="slot-lesson-tutor">Jonathan</span>';
   }
 
   var TIMES     = ['11:00','11:30','12:00','12:30','14:00','14:30','15:00','15:30','16:00','16:30','19:00'];
@@ -900,8 +978,8 @@
   // after freeing balance.
   function applyDefaultDuration() {
     if (hasSelections()) return;
-    var d = (blockReason(costAtDuration(50)) === null) ? 50
-          : (blockReason(costAtDuration(25)) === null) ? 25 : 50;
+    var d = (blockReason(costAtDuration(selectedDuration)) === null) ? selectedDuration
+          : (blockReason(costAtDuration(25)) === null) ? 25 : 25;
     // Always sync the <select> + stepper to the resolved default (the select
     // markup defaults to 50, so it can be stale even when selectedDuration matches).
     var selEl = document.getElementById('duration-select');
@@ -1141,6 +1219,17 @@
   // ── Sidebar ────────────────────────────────────────────────────────
   function updateSidebar() {
     if (totalLessons === 0) return;
+    var hasPendingSelections = weeklySelections.length > 0 || singleSelections.length > 0;
+    var hasFreeBalance = freeBalance() > 0.0001;
+    var addLessonsBtn = document.getElementById('add-lessons-btn');
+    var manageBookedBtn = document.getElementById('manage-booked-btn');
+    var durationContext = document.getElementById('slot-duration-context');
+    if (addLessonsBtn) addLessonsBtn.style.display = hasFreeBalance ? 'none' : '';
+    if (manageBookedBtn) manageBookedBtn.style.display = (!hasFreeBalance && scheduledLessons.length) ? '' : 'none';
+    if (durationContext) {
+      durationContext.textContent = 'Showing ' + selectedDuration + '-minute slots';
+      durationContext.style.display = hasFreeBalance ? '' : 'none';
+    }
     if (currentTab === 'weekly') {
       ctaBtn.textContent = 'Schedule weekly lesson' + (weeklySelections.length > 1 ? 's' : '');
       ctaBtn.className = 'btn-primary ' + (weeklySelections.length >= 1 ? 'btn-active' : 'btn-disabled');
@@ -1148,6 +1237,7 @@
       ctaBtn.textContent = 'Schedule';
       ctaBtn.className = 'btn-primary ' + (singleSelections.length >= 1 ? 'btn-active' : 'btn-disabled');
     }
+    ctaBtn.style.display = hasPendingSelections ? '' : 'none';
     renderSlotsToSchedule();
     lucide.createIcons();
     renderLessonsPanel();
@@ -1205,6 +1295,25 @@
 
   // Balance a lesson consumes at the selected duration (weekly = units × weeks).
   function lessonCost() { return costAtDuration(selectedDuration); }
+  function bookedBalance() { return Math.round(sumLessonUnits(scheduledLessons) * 2) / 2; }
+  function freeBalance() { return Math.max(0, PROGRESS_TOTAL - bookedBalance()); }
+  function canBookSingleAtMinDuration() { return freeBalance() >= lessonUnits(25) - 1e-9; }
+  function canBookWeeklyAtMinDuration() {
+    var minWeeklyCost = lessonUnits(25) * WEEKS_PER_CYCLE;
+    return freeBalance() >= minWeeklyCost - 1e-9
+      && bookedBalance() + minWeeklyCost <= PLAN_SIZE + 1e-9;
+  }
+  function defaultToAvailableBookingMode() {
+    if (!hasSelections() && !canBookWeeklyAtMinDuration() && canBookSingleAtMinDuration()) {
+      doTabSwitch(1);
+    }
+  }
+  window.canBookSingleLesson = function () {
+    return canBookSingleAtMinDuration() && freeBalance() <= 1 + 1e-9;
+  };
+  window.switchToSingleBooking = function () {
+    if (currentTab !== 'single') doTabSwitch(1);
+  };
 
   // Can the learner select a NEW timeslot? Only if plan + balance allow it;
   // otherwise → the balance/plan modal (routed by the blocking reason).
@@ -1262,6 +1371,37 @@
     });
 
     lessonsPanelBody.appendChild(upcomingCards);
+    lucide.createIcons();
+  }
+
+  var manageBookedBody = document.getElementById('manage-booked-body');
+  function renderManageBookedModal() {
+    if (!manageBookedBody) return;
+    manageBookedBody.innerHTML = '';
+    function appendGroup(title, lessons, showRepeat) {
+      var group = document.createElement('div');
+      group.className = 'lesson-panel-group';
+      group.innerHTML = '<div class="lesson-panel-title">' + title + '</div>';
+      if (!lessons.length) {
+        var empty = document.createElement('div');
+        empty.className = 'lesson-panel-empty';
+        empty.textContent = 'No booked lessons';
+        group.appendChild(empty);
+      } else {
+        var cards = document.createElement('div');
+        cards.className = 'lesson-cards';
+        lessons.forEach(function(lesson) {
+          cards.appendChild(makeLessonCard(lesson, false, showRepeat));
+        });
+        group.appendChild(cards);
+      }
+      manageBookedBody.appendChild(group);
+    }
+
+    var singleLessons = scheduledLessons.filter(function(l) { return l.type === 'single'; });
+    var weeklyLessons = scheduledLessons.filter(function(l) { return l.type !== 'single'; });
+    appendGroup('Single lessons', singleLessons, false);
+    appendGroup('Weekly lessons', weeklyLessons, true);
     lucide.createIcons();
   }
 
@@ -1403,7 +1543,7 @@
 
         if (entry && entry.state === 'booked') {
           cell.className = 'slot slot-booked';
-          cell.innerHTML = '<img class="slot-avatar" src="https://randomuser.me/api/portraits/men/32.jpg" alt="Jonathan" />';
+          cell.innerHTML = bookedSlotHtml(time);
           var dBooked = new Date(headerMonday); dBooked.setDate(headerMonday.getDate() + col);
           var bookedRawI = dBooked.getDay() === 0 ? 6 : dBooked.getDay() - 1;
           var bookedDateLabel = DAY_NAMES[bookedRawI].slice(0, 3) + ', ' + dBooked.getDate() + ' ' + MONTHS[dBooked.getMonth()];
@@ -1584,7 +1724,7 @@
       if (slot && slot.classList.contains('slot-available')) {
         slot.classList.remove('slot-available');
         slot.classList.add('slot-booked');
-        slot.innerHTML = '<img class="slot-avatar" src="https://randomuser.me/api/portraits/men/32.jpg" alt="Jonathan" />';
+        slot.innerHTML = bookedSlotHtml(lesson.time);
         slot.removeEventListener('click', handleWeeklySlotClick);
         slot.dataset.planBooked = '1';
         slot.dataset.tooltip = 'Lesson with Jonathan G.\nEvery ' + dayFull
@@ -1622,6 +1762,7 @@
     if (window.AppState) AppState.setLessons(scheduledLessons); // persist across pages
     renderLessonsPanel();
     if (typeof renderSingleGrid === 'function') renderSingleGrid();
+    if (typeof defaultToAvailableBookingMode === 'function') defaultToAvailableBookingMode();
     if (typeof applyDefaultDuration === 'function') applyDefaultDuration(); // freeing balance may change the default
   }
   // Balance consumed by the current booked lessons (each occurrence = its units).
@@ -1720,6 +1861,23 @@
   if (addLessonsBtn) addLessonsBtn.addEventListener('click', function() {
     if (window.DurationStepper && DurationStepper.openMore) DurationStepper.openMore();
   });
+  var manageBookedBtn = document.getElementById('manage-booked-btn');
+  if (manageBookedBtn) manageBookedBtn.addEventListener('click', function() {
+    renderManageBookedModal();
+    var modal = document.getElementById('manage-booked-modal');
+    if (modal) modal.classList.add('visible');
+  });
+  var manageBookedModal = document.getElementById('manage-booked-modal');
+  var manageBookedClose = document.getElementById('manage-booked-close');
+  function closeManageBookedModal() {
+    if (manageBookedModal) manageBookedModal.classList.remove('visible');
+  }
+  if (manageBookedClose) manageBookedClose.addEventListener('click', closeManageBookedModal);
+  if (manageBookedModal) {
+    manageBookedModal.addEventListener('click', function(e) {
+      if (e.target === manageBookedModal) closeManageBookedModal();
+    });
+  }
 
   document.getElementById('cta-btn').addEventListener('click', function() {
     if (this.classList.contains('btn-disabled')) return;
@@ -1777,6 +1935,7 @@
   document.getElementById('content-wrapper').style.display = '';
   renderLessonsPanel();
   updateSidebar();
+  defaultToAvailableBookingMode();
   applyDefaultDuration(); // default to the largest affordable duration (50, else 25)
   lucide.createIcons();
 </script>

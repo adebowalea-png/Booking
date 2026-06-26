@@ -18,16 +18,60 @@
   <style>
     /* ── Reschedule-specific ──────────────────────────────── */
     .slot-current {
-      background: var(--bg-secondary);
-      border: none;
-      color: var(--text-primary);
+      position: relative;
+      overflow: visible;
+      background: #087f6d;
+      border: 2px solid transparent;
+      color: #ffffff;
       cursor: default;
       font-weight: 400;
     }
+    .slot-current::before {
+      content: none;
+    }
     .reschedule-slots { display: flex; flex-direction: column; gap: var(--size-16); }
-    .reschedule-block { display: flex; flex-direction: column; gap: 6px; }
-    #new-lesson-slots { display: flex; flex-direction: column; gap: var(--size-4); }
-    .reschedule-current-time { font-size: 15px; font-weight: 500; color: var(--text-primary); }
+    .reschedule-compare {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 28px minmax(0, 1fr);
+      align-items: center;
+      gap: var(--size-12);
+      padding: var(--size-16);
+      border: 1px solid var(--border-primary);
+      border-radius: var(--radius);
+      background: var(--bg-primary);
+    }
+    .reschedule-compare-side { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+    .reschedule-compare-arrow { color: var(--text-tertiary); display: flex; align-items: center; justify-content: center; }
+    #new-lesson-slots { min-width: 0; }
+    .reschedule-current-time,
+    .reschedule-new-time {
+      font-size: var(--font-size-base);
+      font-weight: 700;
+      color: var(--text-primary);
+      line-height: 1.35;
+      overflow-wrap: anywhere;
+    }
+    .reschedule-new-time {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: var(--size-8);
+    }
+    .reschedule-new-time.is-empty {
+      color: var(--text-secondary);
+      font-weight: 600;
+    }
+    .reschedule-new-remove {
+      background: none;
+      border: none;
+      color: var(--text-secondary);
+      cursor: pointer;
+      padding: 0;
+      line-height: 0;
+      flex-shrink: 0;
+      margin-top: 2px;
+    }
+    .reschedule-new-remove:hover { color: var(--text-primary); }
 
     /* ── Upsell modal ────────────────────────────────────── */
     .upsell-modal-card { position: relative; }
@@ -232,13 +276,18 @@
         </div>
 
         <div class="reschedule-slots">
-          <div class="reschedule-block">
-            <div class="slots-label">Current lesson</div>
-            <div class="reschedule-current-time">Wed, 18 Mar · 14:00 – 14:50</div>
-          </div>
-          <div class="reschedule-block">
-            <div class="slots-label" id="new-lesson-label">New lesson</div>
-            <div id="new-lesson-slots"></div>
+          <div class="reschedule-compare">
+            <div class="reschedule-compare-side">
+              <div class="slots-label">Moving</div>
+              <div class="reschedule-current-time">Wed, 18 Mar · 14:00 – 14:50</div>
+            </div>
+            <div class="reschedule-compare-arrow">
+              <i data-lucide="arrow-right" width="24" height="24" stroke-width="2.2"></i>
+            </div>
+            <div class="reschedule-compare-side">
+              <div class="slots-label" id="new-lesson-label">To</div>
+              <div id="new-lesson-slots"></div>
+            </div>
           </div>
         </div>
 
@@ -327,6 +376,12 @@
     var parts = time.split(':');
     var total = parseInt(parts[0]) * 60 + parseInt(parts[1]) + mins;
     return String(Math.floor(total / 60)).padStart(2, '0') + ':' + String(total % 60).padStart(2, '0');
+  }
+  function bookedSlotHtml(time) {
+    return '<span class="slot-lesson-time">' + time + '</span><span class="slot-lesson-tutor">Jonathan</span>';
+  }
+  function currentSlotHtml(time) {
+    return '<svg class="slot-motion-border" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true" focusable="false"><rect x="1" y="1" width="98" height="98" rx="6" ry="6" pathLength="100"></rect></svg>' + bookedSlotHtml(time);
   }
 
   var TIMES     = ['11:00','11:30','12:00','12:30','14:00','14:30','15:00','15:30','16:00','16:30','19:00'];
@@ -480,36 +535,37 @@
   }
 
   // ── Sidebar — reschedule selection ─────────────────────────────────
+  function rescheduleTimeLabel(day, time) {
+    var parts = (day || '').split(', ');
+    var dm = (parts[1] || '').split(' ');
+    return (parts[0] || '') + ', ' + (dm[1] || '') + ' ' + (dm[0] || '') + ' · ' + time;
+  }
   function updateSidebar() {
-    newLessonLabel.textContent = maxSelections > 1 ? 'New lessons' : 'New lesson';
+    newLessonLabel.textContent = 'To';
     newLessonSlots.innerHTML = '';
-    singleSelections.forEach(function(sel, idx) {
+    if (singleSelections.length) {
+      var sel = singleSelections[0];
       var chipEl = document.createElement('div');
-      chipEl.className = 'lesson-chip visible';
+      chipEl.className = 'reschedule-new-time';
       var textEl = document.createElement('span');
-      textEl.className = 'lesson-chip-text';
-      textEl.textContent = sel.day + ' \u00b7 ' + sel.time + ' \u2013 ' + addMinutes(sel.time, selectedDuration);
+      textEl.textContent = rescheduleTimeLabel(sel.day, sel.time);
       var removeBtn = document.createElement('button');
-      removeBtn.className = 'lesson-chip-remove';
+      removeBtn.className = 'reschedule-new-remove';
       removeBtn.setAttribute('aria-label', 'Remove');
       removeBtn.innerHTML = '<i data-lucide="x" width="20" height="20" stroke-width="2"></i>';
-      removeBtn.addEventListener('click', (function(i) {
-        return function() {
-          singleSelections.splice(i, 1);
-          clearConflicts();
-          renderSingleGrid();
-          updateSidebar();
-        };
-      })(idx));
+      removeBtn.addEventListener('click', function() {
+        singleSelections = [];
+        clearConflicts();
+        renderSingleGrid();
+        updateSidebar();
+      });
       chipEl.appendChild(textEl);
       chipEl.appendChild(removeBtn);
       newLessonSlots.appendChild(chipEl);
-    });
-    var emptyCount = maxSelections - singleSelections.length;
-    for (var e = 0; e < emptyCount; e++) {
+    } else {
       var ph = document.createElement('div');
-      ph.className = 'lesson-slot-empty';
-      ph.innerHTML = '<span>Select lesson time</span>';
+      ph.className = 'reschedule-new-time is-empty';
+      ph.textContent = 'Pick a time';
       newLessonSlots.appendChild(ph);
     }
     lucide.createIcons({ nodes: [newLessonSlots] });
@@ -679,7 +735,7 @@
         if (entry && entry.state === 'current') {
           // The lesson being rescheduled — greyed, with a cancel/reschedule tooltip
           cell.className = 'slot slot-current';
-          cell.innerHTML = '<img class="slot-avatar" src="https://randomuser.me/api/portraits/men/32.jpg" alt="Jonathan" />';
+          cell.innerHTML = currentSlotHtml(time);
           var dCur = new Date(headerMonday); dCur.setDate(headerMonday.getDate() + col);
           var curRawI = dCur.getDay() === 0 ? 6 : dCur.getDay() - 1;
           var curDateLabel = DAY_NAMES[curRawI].slice(0, 3) + ', ' + dCur.getDate() + ' ' + MONTHS[dCur.getMonth()];
@@ -689,7 +745,7 @@
         } else if (entry && entry.state === 'booked') {
           // Another scheduled lesson — show with action tooltip
           cell.className = 'slot slot-booked';
-          cell.innerHTML = '<img class="slot-avatar" src="https://randomuser.me/api/portraits/men/32.jpg" alt="Jonathan" />';
+          cell.innerHTML = bookedSlotHtml(time);
           var dBooked = new Date(headerMonday); dBooked.setDate(headerMonday.getDate() + col);
           var bookedRawI = dBooked.getDay() === 0 ? 6 : dBooked.getDay() - 1;
           var bookedDateLabel = DAY_NAMES[bookedRawI].slice(0, 3) + ', ' + dBooked.getDate() + ' ' + MONTHS[dBooked.getMonth()];
@@ -878,7 +934,7 @@
   var CURRENT_LESSON = Object.assign({}, _allLessons[0], { isCurrent: true });
   (function () {
     var el = document.querySelector('.reschedule-current-time');
-    if (el) el.textContent = CURRENT_LESSON.day + ' · ' + CURRENT_LESSON.time + ' – ' + addMinutes(CURRENT_LESSON.time, ORIGINAL_DURATION);
+    if (el) el.textContent = rescheduleTimeLabel(CURRENT_LESSON.day, CURRENT_LESSON.time);
   })();
   function lfShowCanceledModal() {
     LessonFlows.canceledLesson({ scheduleUrl: 'schedule-vision.html', myLessonsUrl: 'my-lessons-vision.html' });
